@@ -1,0 +1,11 @@
+# Logs
+logs
+
+# Dependency directories
+node_modules/
+
+# dotenv environment variable files
+.env
+
+# custom
+uploads/
