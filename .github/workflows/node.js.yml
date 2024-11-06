@@ -15,12 +15,8 @@ jobs:
                   clean: false # Used to preserve dynamic folders
                   fetch-depth: 0
 
-            # - name: Preserve dynamic folders
-            # run: |
-            # git config core.quotePath false
-            # git diff --name-only --diff-filter=D ${{ github.event.before }} ${{ github.sha }} | grep -E '^(./server/uploads|./server/logs)/' | xargs git checkout HEAD --
-
     server:
+        name: API related job and steps
         needs: build
         runs-on: self-hosted
         strategy:
