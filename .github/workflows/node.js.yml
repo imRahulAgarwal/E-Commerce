@@ -46,8 +46,7 @@ jobs:
             - name: Start or Re-Start PM2 process
               working-directory: ./server/
               run: |
-                  set -x  # Enable debugging
-                  pm2 describe ecommerce > /dev/null 2>&1
+                  pm2 describe ecommerce >> /dev/null 2>&1
                   if [ $? == 0 ]
                   then
                     echo "Restarting Ecommerce PM2 process"
