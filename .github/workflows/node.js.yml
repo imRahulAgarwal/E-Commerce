@@ -47,11 +47,14 @@ jobs:
               working-directory: ./server/
               run: |
                   pm2 describe ecommerce >> /dev/null 2>&1
-                  if [ $? == 0 ]
-                  then
+                  if [ $? -eq 0 ]; then
                     echo "Restarting Ecommerce PM2 process"
                     pm2 restart ecommerce
                   else
                     echo "Starting Ecommerce PM2 process"
                     pm2 start server.js --name ecommerce
                   fi
+
+            - name: Check PM2 status
+              working-directory: ./server/
+              run: pm2 list
