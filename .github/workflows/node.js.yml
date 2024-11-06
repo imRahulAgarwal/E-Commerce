@@ -24,27 +24,16 @@ jobs:
                 node-version: [20.x]
 
         steps:
-            - name: Use Node.js ${{ matrix.node-version }}
-              uses: actions/setup-node@v4
-              with:
-                  node-version: ${{matrix.node-version}}
-                  cache: "npm"
-                  cache-dependency-path: ./server/package-lock.json
-
             - name: Create .env file
               working-directory: ./server/
               run: echo "${{ secrets.PRODUCTION_ENV }}" > .env
 
             - name: Install Node Modules
               working-directory: ./server/
-              run: npm install
+              run: npm ci
 
             - name: Start or Re-Start PM2 process
               working-directory: ./server/
               run: |
                   pm2 stop ecommerce >> /dev/null 2>&1 || true
                   pm2 start server.js --name ecommerce
-
-            - name: Check PM2 status
-              working-directory: ./server/
-              run: pm2 list
