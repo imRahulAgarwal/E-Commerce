@@ -6,18 +6,19 @@ on:
 
 jobs:
     build:
+        name: Code checkout and dynamic folders preserving
         runs-on: self-hosted
         steps:
             - name: Checkout the code
               uses: actions/checkout@v4
               with:
-                  clean: false
+                  clean: false # Used to preserve dynamic folders
                   fetch-depth: 0
 
-            - name: Preserve dynamic folders
-              run: |
-                  git config core.quotePath false
-                  git diff --name-only --diff-filter=D ${{ github.event.before }} ${{ github.sha }} | grep -E '^(./server/uploads|./server/logs)/' | xargs git checkout HEAD --
+            # - name: Preserve dynamic folders
+            # run: |
+            # git config core.quotePath false
+            # git diff --name-only --diff-filter=D ${{ github.event.before }} ${{ github.sha }} | grep -E '^(./server/uploads|./server/logs)/' | xargs git checkout HEAD --
 
     server:
         needs: build
@@ -32,18 +33,24 @@ jobs:
               with:
                   node-version: ${{matrix.node-version}}
                   cache: "npm"
-                  cache-dependency-path: server/package-lock.json
-            - name: Create .env file
-              run: |
-                  echo "${{ secrets.PRODUCTION_ENV }}" > .env
+                  cache-dependency-path: ./server/package-lock.json
+            - name: Open the server directory
+              run: cd ./server/
 
-            - run: |
-                  npm ci
+            - name: Create .env file
+              run: echo "${{ secrets.PRODUCTION_ENV }}" > .env
+
+            - name: Install Node Modules
+              run: npm ci
+
+            - name: Start or Re-Start PM2 process
+              run: |
                   pm2 describe ecommerce > /dev/null 2>&1
-                  if [ $? -eq 0 ]; then
-                    echo "Restarting existing PM2 process: ecommerce"
+                  if [ $? == 0 ]
+                  then
+                    echo "Restarting Ecommerce PM2 process"
                     pm2 restart ecommerce
                   else
-                    echo "Starting a new PM2 process: ecommerce"
+                    echo "Starting Ecommerce PM2 process"
                     pm2 start server.js --name ecommerce
                   fi
