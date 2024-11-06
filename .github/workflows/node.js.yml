@@ -39,6 +39,11 @@ jobs:
               working-directory: ./server/
               run: npm install
 
+            - name: Start or Re-Start PM2 process
+              working-directory: ./server/
+              run: |
+                  pm2 describe ecommerce
+
             - name: Check PM2 status
               working-directory: ./server/
               run: pm2 list
