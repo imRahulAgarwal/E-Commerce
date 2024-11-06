@@ -10,7 +10,7 @@ import panelRouter from "./routes/panelRouter.js";
 import errorMiddleware from "./middlewares/errorMiddleware.js";
 
 const PORT = process.env.PORT || 3000;
-const ORIGINS = process.env.ALLOWED_ORIGINS.split(",");
+const ORIGINS = process.env.ALLOWED_ORIGINS?.split(",") || "*";
 
 const app = express();
 
