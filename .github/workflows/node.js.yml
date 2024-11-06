@@ -34,16 +34,17 @@ jobs:
                   node-version: ${{matrix.node-version}}
                   cache: "npm"
                   cache-dependency-path: ./server/package-lock.json
-            - name: Open the server directory
-              run: cd ./server/
 
             - name: Create .env file
+              working-directory: ./server/
               run: echo "${{ secrets.PRODUCTION_ENV }}" > .env
 
             - name: Install Node Modules
-              run: npm ci
+              working-directory: ./server/
+              run: npm install
 
             - name: Start or Re-Start PM2 process
+              working-directory: ./server/
               run: |
                   pm2 describe ecommerce > /dev/null 2>&1
                   if [ $? == 0 ]
