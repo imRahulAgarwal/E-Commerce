@@ -490,7 +490,7 @@ export const updateWishlist = asyncHandler(async (req, res, next) => {
 // Orders
 export const readOrders = asyncHandler(async (req, res, next) => {
     const user = req.user;
-    const { page = 1, limit = 10, sortBy = "date", order = "asc" } = req.query;
+    const { page = 1, limit = 10, sort = "date", order = "asc" } = req.query;
 
     // Convert page and limit to integers
     const pageNum = parseInt(page, 10);
@@ -501,7 +501,7 @@ export const readOrders = asyncHandler(async (req, res, next) => {
         date: "createdAt",
         amount: "totalAmount",
     };
-    const sortField = sortOptions[sortBy] || sortOptions.date; // Default to sorting by date
+    const sortField = sortOptions[sort] || sortOptions.date; // Default to sorting by date
     const sortOrder = order === "desc" ? -1 : 1;
 
     // Query to fetch the orders

@@ -23,6 +23,7 @@ panelRouter.get("/dashboard", panelController.getDashboard);
 // Customer Management
 panelRouter.get("/customers", panelController.getCustomers);
 panelRouter.get("/customers/:customerId", panelController.getCustomerById);
+panelRouter.post("/customers", panelController.createCustomer);
 
 // Order Management
 panelRouter.get("/orders", panelController.getOrders);

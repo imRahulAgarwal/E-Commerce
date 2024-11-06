@@ -10,6 +10,7 @@ import panelRouter from "./routes/panelRouter.js";
 import errorMiddleware from "./middlewares/errorMiddleware.js";
 
 const PORT = process.env.PORT || 3000;
+const ORIGINS = process.env.ALLOWED_ORIGINS.split(",");
 
 const app = express();
 
@@ -17,7 +18,8 @@ connectDatabase().then(() => initializeProject());
 
 app.use(
     cors({
-        origin: ["http://localhost:5173"],
+        origin: ORIGINS,
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     })
 );
 app.use(express.json());

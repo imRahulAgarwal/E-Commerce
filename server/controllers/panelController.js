@@ -1,7 +1,6 @@
 import asyncHandler from "../middlewares/asyncHandler.js";
 import { hashPassword, comparePassword } from "../utils/password.js";
 import User from "../models/user.js";
-import Address from "../models/address.js";
 import UserRole from "../models/role.js";
 import Product from "../models/product.js";
 import ProductSize from "../models/product-size.js";
@@ -25,7 +24,7 @@ import removeImage from "../utils/removeImage.js";
 import panelUserSchema from "../schemas/panel-user.js";
 import productSizeSchema from "../schemas/product-size.js";
 import noteAudits from "../utils/note-audit.js";
-const pageLimit = 10;
+import customerSchema from "../schemas/customer.js";
 const DOMAIN = process.env.DOMAIN;
 const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD;
 
@@ -187,14 +186,34 @@ export const getDashboard = asyncHandler(async (req, res, next) => {});
 // @desc    Get list of customers
 // @route   GET /api/panel/customers
 export const getCustomers = asyncHandler(async (req, res, next) => {
-    let { page } = req.query;
+    let { page = 1, limit = 10, sort = "fName", order = "asc", search } = req.query;
+    let searchQuery = { isDeleted: false, isCustomer: true };
 
-    let customerRole = await UserRole.findOne({ name: "Customer", isDeleted: false, isDynamic: false });
-    let customers = await User.find({ isDeleted: false, role: customerRole._id })
-        .skip(((page ? page : 1) - 1) * pageLimit)
-        .limit(pageLimit);
+    if (search) {
+        searchQuery.$or = [{ fName: { $regex: search, $options: "i" } }, { lName: { $regex: search, $options: "i" } }];
+    }
 
-    return res.status(200).json({ success: true, data: customers });
+    if (order !== "asc" && order !== "desc") {
+        order = "asc";
+    }
+
+    const customers = await User.find(searchQuery, { fName: 1, lName: 1, email: 1, number: 1, createdAt: 1 })
+        .sort({ [sort]: order })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean();
+
+    const total = await User.countDocuments(searchQuery);
+
+    return res.status(200).json({
+        success: true,
+        data: {
+            customers,
+            pages: Math.ceil(total / limit),
+            total,
+            page: parseInt(page),
+        },
+    });
 });
 
 // @desc    Get details of a specific customer
@@ -205,8 +224,10 @@ export const getCustomerById = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Provide a customer ID", 400));
     }
 
-    let customerRole = await UserRole.findOne({ name: "Customer", isDeleted: false, isDynamic: false });
-    let customer = await User.findOne({ _id: customerId, isDeleted: false, role: customerRole._id });
+    let customer = await User.findOne(
+        { _id: customerId, isDeleted: false, isCustomer: true },
+        { fName: 1, lName: 1, email: 1, number: 1, createdAt: 1, updatedAt: 1 }
+    );
 
     if (!customer) {
         return next(new ErrorHandler("Customer details not found", 404));
@@ -215,16 +236,69 @@ export const getCustomerById = asyncHandler(async (req, res, next) => {
     return res.status(200).json({ success: true, data: customer });
 });
 
+// @desc    Create a new customer
+// @route   POST /api/panel/customers
+export const createCustomer = asyncHandler(async (req, res, next) => {
+    let validation = customerSchema.validate(req.body);
+    if (validation.error) {
+        return next(new ErrorHandler(validation.error.details[0].message, 400));
+    }
+
+    const { fName, lName, email, number } = validation.value;
+
+    let customerRole = await UserRole.findOne({ name: "Customer", isDeleted: false, isDynamic: false });
+    let hashedPassword = hashPassword(DEFAULT_PASSWORD);
+    let newCustomer = await User.create({
+        fName,
+        lName,
+        email,
+        number,
+        password: hashedPassword,
+        isCustomer: true,
+        role: customerRole.id,
+    });
+
+    return res.status(201).json({
+        success: true,
+        message: "Customer details added",
+        data: { fName, lName, email, number, _id: newCustomer._id },
+    });
+});
+
 // Order Management
 
 // @desc    Get list of orders
 // @route   GET /api/panel/orders
 export const getOrders = asyncHandler(async (req, res, next) => {
-    let { page } = req.query;
-    let orders = await Order.find()
-        .skip(((page ? page : 1) - 1) * pageLimit)
-        .limit(pageLimit);
-    return res.status(200).json({ success: true, data: orders });
+    let { page = 1, limit = 10, sort = "createdAt", order = "asc", search } = req.query;
+    let searchQuery = {};
+
+    if (search) {
+        // Here we have used exact case matching to get the same order details
+        searchQuery.razorpay_order_id = search;
+    }
+
+    if (order !== "asc" && order !== "desc") {
+        order = "asc";
+    }
+
+    let orders = await Order.find(searchQuery, { totalAmount: 1, paymentStatus: 1, createdAt: 1, isBuyNow: 1 })
+        .sort({ [sort]: order })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean();
+
+    let total = await Order.countDocuments(searchQuery);
+
+    return res.status(200).json({
+        success: true,
+        data: {
+            orders,
+            pages: Math.ceil(total / limit),
+            total,
+            page: parseInt(page),
+        },
+    });
 });
 
 // @desc    Get details of a specific order
@@ -235,7 +309,19 @@ export const getOrderById = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Provide an order ID", 400));
     }
 
-    let order = await Order.findOne({ _id: orderId });
+    let order = await Order.findOne({ _id: orderId })
+        .populate({
+            path: "products.productSizeId",
+            populate: {
+                path: "productColourId",
+                populate: {
+                    path: "productId",
+                },
+            },
+        })
+        .populate({ path: "userId" })
+        .populate({ path: "address" });
+
     if (!order) {
         return next(new ErrorHandler("Order details not found", 404));
     }
@@ -255,10 +341,12 @@ export const getProducts = asyncHandler(async (req, res, next) => {
     if (minPrice) filter.price = { ...filter.price, $gte: parseFloat(minPrice) };
     if (maxPrice) filter.price = { ...filter.price, $lte: parseFloat(maxPrice) };
 
-    const sortOrder = order === "desc" ? -1 : 1;
+    if (order !== "asc" && order !== "desc") {
+        order = "asc";
+    }
 
     const products = await Product.find(filter)
-        .sort({ [sortBy]: sortOrder })
+        .sort({ [sortBy]: order })
         .skip((page - 1) * limit)
         .limit(parseInt(limit));
 
@@ -764,13 +852,34 @@ export const updateProductPrice = asyncHandler(async (req, res, next) => {
 // @desc    Get list of audit records
 // @route   GET /api/panel/audits
 export const getAudits = asyncHandler(async (req, res, next) => {
-    let { page } = req.query;
-    let audits = await AuditLogs.find()
-        .skip(((page ? page : 1) - 1) * pageLimit)
-        .limit(pageLimit)
-        .populate({ path: "userId", select: "fName lName email role", populate: { path: "role", select: "name" } });
+    let { page = 1, limit = 10, order = "asc", sort = "createdAt", search } = req.query;
+    let searchQuery = {};
+    if (search) {
+        searchQuery.targetModule = { $regex: search, $options: "i" };
+    }
 
-    return res.status(200).json({ success: true, data: audits });
+    if (order !== "asc" && order !== "desc") {
+        order = "asc";
+    }
+
+    let audits = await AuditLogs.find(searchQuery)
+        .sort({ [sort]: order })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate({ path: "userId", select: "fName lName email role", populate: { path: "role", select: "name" } })
+        .lean();
+
+    let total = await AuditLogs.countDocuments(searchQuery);
+
+    return res.status(200).json({
+        success: true,
+        data: {
+            audits,
+            page: parseInt(page),
+            total,
+            pages: Math.ceil(total / limit),
+        },
+    });
 });
 
 // @desc    Get details of a specific audit record
@@ -781,7 +890,12 @@ export const getAuditById = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Provide an audit ID", 400));
     }
 
-    let audit = await AuditLogs.findOne({ _id: auditId }).populate("userId", "fName lName email");
+    let audit = await AuditLogs.findOne({ _id: auditId }).populate({
+        path: "userId",
+        select: "fName lName email role",
+        populate: { path: "role", select: "name" },
+    });
+
     if (!audit) {
         return next(new ErrorHandler("Audit details not found", 404));
     }
@@ -915,23 +1029,38 @@ export const deleteRole = asyncHandler(async (req, res, next) => {
 // Panel User Management
 
 // @desc    Get list of panel users
-// @route   GET /api/panel/api/panel-users
+// @route   GET /api/panel-users
 export const getPanelUsers = asyncHandler(async (req, res, next) => {
-    let { page } = req.query;
+    let { page = 1, limit = 10, sort = "fName", order = "asc", search } = req.query;
+    let searchQuery = { isCustomer: false, isDeleted: false };
+    if (search) {
+        searchQuery.$or = [{ fName: { $regex: search, $options: "i" } }, { lName: { $regex: search, $options: "i" } }];
+    }
 
-    let panelUsers = await User.find(
-        { isDeleted: false, isCustomer: false },
-        { fName: 1, role: 1, lName: 1, email: 1, number: 1 }
-    )
+    if (order !== "asc" && order !== "desc") {
+        order = "asc";
+    }
+
+    let panelUsers = await User.find(searchQuery, { fName: 1, role: 1, lName: 1, email: 1, number: 1 })
+        .sort({ [sort]: order })
         .populate("role", "_id name")
-        .skip(((page ? page : 1) - 1) * pageLimit)
-        .limit(pageLimit);
+        .skip((page - 1) * limit)
+        .limit(limit);
 
-    return res.status(200).json({ success: true, data: panelUsers });
+    let total = await User.countDocuments(searchQuery);
+    return res.status(200).json({
+        success: true,
+        data: {
+            panelUsers,
+            page: parseInt(page),
+            total,
+            pages: Math.ceil(total / limit),
+        },
+    });
 });
 
 // @desc    Get details of a specific panel user
-// @route   GET /api/panel/api/panel-users/:panelUserId
+// @route   GET /api/panel-users/:panelUserId
 export const getPanelUserById = asyncHandler(async (req, res, next) => {
     let { panelUserId } = req.params;
     if (!validateObjectId(panelUserId)) {
@@ -950,7 +1079,7 @@ export const getPanelUserById = asyncHandler(async (req, res, next) => {
 });
 
 // @desc    Create a new panel user
-// @route   POST /api/panel/api/panel-users
+// @route   POST /api/panel-users
 export const createPanelUser = asyncHandler(async (req, res, next) => {
     let validation = panelUserSchema.validate(req.body);
     if (validation.error) {
@@ -988,7 +1117,7 @@ export const createPanelUser = asyncHandler(async (req, res, next) => {
 });
 
 // @desc    Update a panel user
-// @route   PUT /api/panel/api/panel-users/:panelUserId
+// @route   PUT /api/panel-users/:panelUserId
 export const updatePanelUser = asyncHandler(async (req, res, next) => {
     let { panelUserId } = req.params;
     if (!validateObjectId(panelUserId)) {
@@ -1038,7 +1167,7 @@ export const updatePanelUser = asyncHandler(async (req, res, next) => {
 });
 
 // @desc    Delete a panel user
-// @route   DELETE /api/panel/api/panel-users/:panelUserId
+// @route   DELETE /api/panel-users/:panelUserId
 export const deletePanelUser = asyncHandler(async (req, res, next) => {
     let { panelUserId } = req.params;
     if (!validateObjectId(panelUserId)) {

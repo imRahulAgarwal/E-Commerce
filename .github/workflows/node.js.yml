@@ -1,0 +1,49 @@
+name: E-Commerce Store
+
+on:
+    push:
+        branches: ["main"]
+
+jobs:
+    build:
+        runs-on: self-hosted
+        steps:
+            - name: Checkout the code
+              uses: actions/checkout@v4
+              with:
+                  clean: false
+                  fetch-depth: 0
+
+            - name: Preserve dynamic folders
+              run: |
+                  git config core.quotePath false
+                  git diff --name-only --diff-filter=D ${{ github.event.before }} ${{ github.sha }} | grep -E '^(./server/uploads|./server/logs)/' | xargs git checkout HEAD --
+
+    server:
+        needs: build
+        runs-on: self-hosted
+        strategy:
+            matrix:
+                node-version: [20.x]
+
+        steps:
+            - name: Use Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{matrix.node-version}}
+                  cache: "npm"
+                  cache-dependency-path: server/package-lock.json
+            - name: Create .env file
+              run: |
+                  echo "${{ secrets.PRODUCTION_ENV }}" > .env
+
+            - run: |
+                  npm ci
+                  pm2 describe ecommerce > /dev/null 2>&1
+                  if [ $? -eq 0 ]; then
+                    echo "Restarting existing PM2 process: ecommerce"
+                    pm2 restart ecommerce
+                  else
+                    echo "Starting a new PM2 process: ecommerce"
+                    pm2 start server.js --name ecommerce
+                  fi
