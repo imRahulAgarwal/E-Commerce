@@ -42,7 +42,8 @@ jobs:
             - name: Start or Re-Start PM2 process
               working-directory: ./server/
               run: |
-                  pm2 describe ecommerce >> /dev/null 2>&1
+                  pm2 stop ecommerce >> /dev/null 2>&1 || true
+                  pm2 start server.js --name ecommerce
 
             - name: Check PM2 status
               working-directory: ./server/
