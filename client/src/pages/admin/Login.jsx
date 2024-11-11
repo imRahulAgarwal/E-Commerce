@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faEye, faEyeSlash } from "@fortawesome/free-regular-svg-icons";
+import adminPanelService from "../../api/admin/api-admin";
 
 const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
@@ -9,8 +10,7 @@ const Login = () => {
     const { errors, isSubmitting } = formState;
 
     async function onSubmit(data) {
-        await new Promise((res) => setTimeout(res, 1000)); // Simulated submission delay
-        console.log(data);
+        await adminPanelService.login(data.email, data.password);
     }
 
     return (

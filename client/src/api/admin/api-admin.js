@@ -7,13 +7,13 @@ const getToken = () => {
     return window.localStorage.getItem("token");
 };
 
-export async function login(email, password) {
-    try {
-        const url = `${apiUrl}/panel/login`;
-        const body = JSON.stringify({ email, password });
-        const token = getToken();
+class AdminPanel {
+    async login(email, password) {
+        try {
+            const url = `${apiUrl}/panel/login`;
+            const body = JSON.stringify({ email, password });
+            const token = getToken();
 
-        if (!token) {
             let response = await axios.post(url, body, {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -27,19 +27,73 @@ export async function login(email, password) {
             } else {
                 toast.error(data.message, toastCss);
             }
+        } catch (error) {
+            toast.error("Internal server error", toastCss);
         }
-    } catch (error) {
-        toast.error("Internal server error", toastCss);
     }
-}
 
-export async function changePassword(oldPassword, newPassword, confirmPassword) {
-    try {
-        const url = `${apiUrl}/panel/change-password`;
-        const body = JSON.stringify({ oldPassword, newPassword, confirmPassword });
-        const token = getToken();
+    async changePassword(oldPassword, newPassword, confirmPassword) {
+        try {
+            const url = `${apiUrl}/panel/change-password`;
+            const body = JSON.stringify({ oldPassword, newPassword, confirmPassword });
+            const token = getToken();
 
-        if (token) {
+            if (token) {
+                let response = await axios.post(url, body, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                });
+
+                let data = response.data;
+                if (data.success) {
+                    toast.success(data.message, toastCss);
+                } else {
+                    toast.error(data.message, toastCss);
+                }
+            } else {
+                toast.error("Login to proceed", toastCss);
+            }
+        } catch (error) {
+            toast.error("Internal server error", toastCss);
+        }
+    }
+
+    async resetPassword(newPassword, confirmPassword) {
+        try {
+            const url = `${apiUrl}/panel/reset-password`;
+            const body = JSON.stringify({ newPassword, confirmPassword });
+            const token = getToken();
+
+            if (!token) {
+                let response = await axios.post(url, body, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                });
+
+                let data = response.data;
+                if (data.success) {
+                    toast.success(data.message, toastCss);
+                } else {
+                    toast.error(data.message, toastCss);
+                }
+            } else {
+                toast.error("User already logged in", toastCss);
+            }
+        } catch (error) {
+            toast.error("Internal server error", toastCss);
+        }
+    }
+
+    async forgotPassword(email) {
+        try {
+            const url = `${apiUrl}/panel/forgot-password`;
+            const body = JSON.stringify({ email });
+            const token = getToken();
+
             let response = await axios.post(url, body, {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -53,98 +107,130 @@ export async function changePassword(oldPassword, newPassword, confirmPassword) 
             } else {
                 toast.error(data.message, toastCss);
             }
-        } else {
-            toast.error("Login to proceed", toastCss);
+        } catch (error) {
+            toast.error("Internal server error", toastCss);
         }
-    } catch (error) {
-        toast.error("Internal server error", toastCss);
     }
+
+    async profile() {}
+
+    async getCustomers(page, limit, search, sort, order) {
+        let url = `${apiUrl}/panel/customers?page=${page}&limit=${limit}`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+    }
+    async getCustomer(customerId) {
+        let url = `${apiUrl}/panel/customers/${customerId}`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+    }
+
+    async getOrders(page, limit, search, sort, order) {}
+    async getOrder(orderId) {}
+
+    async getTransactions() {}
+    async getTransaction() {}
+
+    async getInventory() {}
+    async updateInventory() {}
+
+    async getPermissions() {
+        let url = `${apiUrl}/panel/permissions`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+    }
+
+    async getRoles(page, limit, search, sort, order) {
+        let url = `${apiUrl}/panel/roles`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+    }
+
+    async getRole(roleId) {
+        let url = `${apiUrl}/panel/roles/${roleId}`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+    }
+
+    async createRole() {}
+    async updateRole() {}
+    async deleteRole() {}
+
+    async getPanelUsers(page, limit, search, sort, order) {
+        let url = `${apiUrl}/panel/panel-users`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+    }
+    async getPanelUser(panelUserId) {
+        let url = `${apiUrl}/panel/panel-users/${panelUserId}`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+    }
+    async createPanelUser() {}
+    async updatePanelUser() {}
+    async deletePanelUser() {}
+
+    async getReports(page, limit, search, sort, order) {}
+    async getReport() {}
+
+    async getAudits(page, limit, search, sort, order) {
+        let url = `${apiUrl}/panel/audits`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+    }
+    async getAudit() {}
+
+    async logout() {}
 }
 
-export async function resetPassword(newPassword, confirmPassword) {
-    try {
-        const url = `${apiUrl}/panel/reset-password`;
-        const body = JSON.stringify({ newPassword, confirmPassword });
-        const token = getToken();
+const adminPanelService = new AdminPanel();
 
-        if (!token) {
-            let response = await axios.post(url, body, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            let data = response.data;
-            if (data.success) {
-                toast.success(data.message, toastCss);
-            } else {
-                toast.error(data.message, toastCss);
-            }
-        } else {
-            toast.error("User already logged in", toastCss);
-        }
-    } catch (error) {
-        toast.error("Internal server error", toastCss);
-    }
-}
-
-export async function forgotPassword(email) {
-    try {
-        const url = `${apiUrl}/panel/forgot-password`;
-        const body = JSON.stringify({ email });
-        const token = getToken();
-
-        let response = await axios.post(url, body, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-            },
-        });
-
-        let data = response.data;
-        if (data.success) {
-            toast.success(data.message, toastCss);
-        } else {
-            toast.error(data.message, toastCss);
-        }
-    } catch (error) {
-        toast.error("Internal server error", toastCss);
-    }
-}
-
-export async function profile() {}
-
-export async function getCustomers(page, limit, search, sort, order) {}
-export async function getCustomer(customerId) {}
-
-export async function getOrders(page, limit, search, sort, order) {}
-export async function getOrder(orderId) {}
-
-export async function getTransactions() {}
-export async function getTransaction() {}
-
-export async function getInventory() {}
-export async function updateInventory() {}
-
-export async function getPermissions() {}
-
-export async function getRoles(page, limit, search, sort, order) {}
-export async function getRole() {}
-export async function createRole() {}
-export async function updateRole() {}
-export async function deleteRole() {}
-
-export async function getPanelUsers(page, limit, search, sort, order) {}
-export async function getPanelUser() {}
-export async function createPanelUser() {}
-export async function updatePanelUser() {}
-export async function deletePanelUser() {}
-
-export async function getReports(page, limit, search, sort, order) {}
-export async function getReport() {}
-
-export async function getAudits(page, limit, search, sort, order) {}
-export async function getAudit() {}
-
-export async function logout() {}
+export default adminPanelService;

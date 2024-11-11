@@ -4,6 +4,7 @@ const errorMiddleware = (err, req, res, next) => {
     let statusCode = err.statusCode || 500;
     let message = err.message || "Internal Server Error";
 
+    console.log(err.message);
     // Handle validation errors
     if (err.name === "ValidationError") {
         statusCode = 400;

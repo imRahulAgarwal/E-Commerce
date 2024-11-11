@@ -12,6 +12,9 @@ export function generateToken(data, expiresIn = 86400) {
 
 export function verifyToken(token) {
     try {
+        if (token === "null") {
+            throw new Error("Token not provided");
+        }
         let payload = jwt.verify(token, JWT_SECRET);
         return payload;
     } catch (error) {

@@ -212,6 +212,7 @@ export const getCustomers = asyncHandler(async (req, res, next) => {
             pages: Math.ceil(total / limit),
             total,
             page: parseInt(page),
+            limit,
         },
     });
 });
@@ -227,11 +228,13 @@ export const getCustomerById = asyncHandler(async (req, res, next) => {
     let customer = await User.findOne(
         { _id: customerId, isDeleted: false, isCustomer: true },
         { fName: 1, lName: 1, email: 1, number: 1, createdAt: 1, updatedAt: 1 }
-    );
+    ).lean();
 
     if (!customer) {
         return next(new ErrorHandler("Customer details not found", 404));
     }
+
+    customer.addresses = [];
 
     return res.status(200).json({ success: true, data: customer });
 });

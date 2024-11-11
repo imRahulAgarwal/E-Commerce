@@ -1,30 +1,37 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useReactTable, getCoreRowModel, flexRender, getPaginationRowModel } from "@tanstack/react-table";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
-import usersData from "../../data/users.json";
+import { faEdit, faEye, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
+import adminPanelService from "../../api/admin/api-admin";
+import { Link } from "react-router-dom";
 
 const PanelUsers = () => {
+    const [panelUsers, setPanelUsers] = useState([]);
     const [pagination, setPagination] = useState({
         pageIndex: 0,
         pageSize: 10,
     });
 
-    const data = useMemo(() => usersData, []);
-
+    console.log(panelUsers);
     const columns = [
-        { header: "Album ID", accessorKey: "albumId" },
-        { header: "ID", accessorKey: "id" },
-        { header: "Title", accessorKey: "title" },
-        { header: "URL", accessorKey: "url" },
+        {
+            header: "Name",
+            accessorFn: (data, index) => {
+                return `${data.fName} ${data.lName}`;
+            },
+        },
+        { header: "Email", accessorKey: "email" },
+        { header: "Role", accessorKey: "role.name" },
         {
             header: "Actions",
             cell: ({ row }) => (
                 <div className="flex justify-center gap-2">
-                    {/* <button className="flex items-center px-2 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded">
+                    <Link
+                        to={`/panel/panel-users/${row.original._id}`}
+                        className="flex items-center px-2 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded">
                         <FontAwesomeIcon icon={faEye} className="mr-1" />
                         View
-                    </button> */}
+                    </Link>
                     <button className="flex items-center px-2 py-1 text-white bg-yellow-500 hover:bg-yellow-600 rounded">
                         <FontAwesomeIcon icon={faEdit} className="mr-1" />
                         Edit
@@ -39,7 +46,7 @@ const PanelUsers = () => {
     ];
 
     const table = useReactTable({
-        data,
+        data: panelUsers,
         columns,
         state: { pagination },
         onPaginationChange: setPagination,
@@ -47,10 +54,14 @@ const PanelUsers = () => {
         getPaginationRowModel: getPaginationRowModel(),
     });
 
+    useEffect(() => {
+        adminPanelService.getPanelUsers().then(({ data: { panelUsers } }) => setPanelUsers(panelUsers));
+    }, []);
+
     return (
         <div className="bg-white shadow-lg rounded-lg w-full">
-            <div className="w-full">
-                <table className="w-full text-center overflow-x-auto">
+            <div className="w-full overflow-x-auto">
+                <table className="w-full text-center min-w-[600px]">
                     <thead>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <tr key={headerGroup.id}>
@@ -75,16 +86,16 @@ const PanelUsers = () => {
                     </tbody>
                 </table>
             </div>
-            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-b-lg">
-                <div>
+            <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-blue-50 rounded-b-lg">
+                <div className="flex space-x-1 mb-2 sm:mb-0">
                     <button
-                        className="px-3 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded mr-1"
+                        className="px-3 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded disabled:bg-gray-300"
                         onClick={() => table.previousPage()}
                         disabled={!table.getCanPreviousPage()}>
                         Previous
                     </button>
                     <button
-                        className="px-3 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded mr-1"
+                        className="px-3 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded disabled:bg-gray-300"
                         onClick={() => table.nextPage()}
                         disabled={!table.getCanNextPage()}>
                         Next

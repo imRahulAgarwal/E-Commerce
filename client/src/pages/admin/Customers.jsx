@@ -1,56 +1,69 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useReactTable, getCoreRowModel, flexRender, getPaginationRowModel } from "@tanstack/react-table";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
-import usersData from "../../data/users.json";
+import adminPanelService from "../../api/admin/api-admin";
+import { faEye } from "@fortawesome/free-regular-svg-icons";
+import { Link } from "react-router-dom";
 
 const Customers = () => {
-    const [pagination, setPagination] = useState({
-        pageIndex: 0,
-        pageSize: 10,
-    });
-
-    const data = useMemo(() => usersData, []);
+    const [customers, setCustomers] = useState([]);
+    const [pagination, setPagination] = useState({ page: 1, total: 0, pages: 1, limit: 10 });
 
     const columns = [
-        { header: "Album ID", accessorKey: "albumId" },
-        { header: "ID", accessorKey: "id" },
-        { header: "Title", accessorKey: "title" },
-        { header: "URL", accessorKey: "url" },
+        { header: "Name", accessorFn: (data, index) => `${data.fName} ${data.lName}` },
+        { header: "Email", accessorKey: "email" },
+        { header: "Number", accessorKey: "number" },
         {
             header: "Actions",
             cell: ({ row }) => (
                 <div className="flex justify-center gap-2">
-                    {/* <button className="flex items-center px-2 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded">
+                    <Link
+                        to={`/panel/customers/${row.original._id}`}
+                        className="flex items-center px-2 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded">
                         <FontAwesomeIcon icon={faEye} className="mr-1" />
                         View
-                    </button> */}
-                    <button className="flex items-center px-2 py-1 text-white bg-yellow-500 hover:bg-yellow-600 rounded">
-                        <FontAwesomeIcon icon={faEdit} className="mr-1" />
-                        Edit
-                    </button>
-                    <button className="flex items-center px-2 py-1 text-white bg-red-500 hover:bg-red-600 rounded">
-                        <FontAwesomeIcon icon={faTrashAlt} className="mr-1" />
-                        Delete
-                    </button>
+                    </Link>
                 </div>
             ),
         },
     ];
 
     const table = useReactTable({
-        data,
+        data: customers,
         columns,
-        state: { pagination },
-        onPaginationChange: setPagination,
+        manualPagination: true,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
     });
 
+    const increasePageNo = () => {
+        if (pagination.page < pagination.pages) {
+            setPagination((prev) => ({ ...prev, page: prev.page + 1 }));
+        }
+    };
+
+    const decreasePageNo = () => {
+        if (pagination.page > 1) {
+            setPagination((prev) => ({ ...prev, page: prev.page - 1 }));
+        }
+    };
+
+    useEffect(() => {
+        adminPanelService.getCustomers(pagination.page, pagination.limit).then(({ data }) => {
+            setPagination({
+                page: data.page,
+                total: data.total,
+                pages: data.pages,
+                limit: data.limit,
+            });
+            setCustomers(data.customers);
+        });
+    }, [pagination.page, pagination.limit]);
+
     return (
         <div className="bg-white shadow-lg rounded-lg w-full">
-            <div className="w-full">
-                <table className="w-full text-center overflow-x-auto">
+            <div className="w-full overflow-x-auto">
+                <table className="w-full text-center min-w-[600px]">
                     <thead>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <tr key={headerGroup.id}>
@@ -75,27 +88,30 @@ const Customers = () => {
                     </tbody>
                 </table>
             </div>
-            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-b-lg">
-                <div>
+            <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-blue-50 rounded-b-lg">
+                <div className="flex space-x-1 mb-2 sm:mb-0">
+                    <div className="px-3 py-1">
+                        Showing Page {pagination.page} / {pagination.pages}
+                    </div>
                     <button
-                        className="px-3 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded mr-1"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}>
+                        className="px-3 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded disabled:bg-gray-300"
+                        onClick={decreasePageNo}
+                        disabled={pagination.page === 1}>
                         Previous
                     </button>
                     <button
-                        className="px-3 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded mr-1"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}>
+                        className="px-3 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded disabled:bg-gray-300"
+                        onClick={increasePageNo}
+                        disabled={pagination.page === pagination.pages}>
                         Next
                     </button>
                 </div>
                 <div>
                     <select
                         className="px-2 py-1 border border-blue-400 rounded-md"
-                        value={table.getState().pagination.pageSize}
-                        onChange={(e) => table.setPageSize(Number(e.target.value))}>
-                        {[10, 50, 100, 200].map((pageSize) => (
+                        value={pagination.limit}
+                        onChange={(e) => setPagination((prev) => ({ ...prev, limit: Number(e.target.value) }))}>
+                        {[10, 25, 50, 100].map((pageSize) => (
                             <option key={pageSize} value={pageSize}>
                                 Show {pageSize}
                             </option>

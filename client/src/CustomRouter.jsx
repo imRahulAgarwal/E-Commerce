@@ -13,6 +13,9 @@ import Orders from "./pages/admin/Orders";
 import Transactions from "./pages/admin/Transactions";
 import Products from "./pages/admin/Products";
 import Inventory from "./pages/admin/Inventory";
+import Customer from "./pages/admin/Customer";
+import PanelUser from "./pages/admin/PanelUser";
+import Role from "./pages/admin/Role";
 
 const CustomRouter = () => {
     const router = createBrowserRouter(
@@ -23,12 +26,15 @@ const CustomRouter = () => {
                 <Route path="panel/reset-password" element={<ResetPassword />} />
                 <Route path="panel/profile" element={<Profile />} />
                 <Route path="panel/customers" element={<Customers />} />
+                <Route path="panel/customers/:customerId" element={<Customer />} />
                 <Route path="panel/orders" element={<Orders />} />
                 <Route path="panel/transactions" element={<Transactions />} />
                 <Route path="panel/products" element={<Products />} />
                 <Route path="panel/inventory" element={<Inventory />} />
                 <Route path="panel/roles" element={<Roles />} />
+                <Route path="panel/roles/:roleId" element={<Role />} />
                 <Route path="panel/panel-users" element={<PanelUsers />} />
+                <Route path="panel/panel-users/:panelUserId" element={<PanelUser />} />
                 <Route path="panel/audits" element={<Audits />} />
             </Route>
         )
