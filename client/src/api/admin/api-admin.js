@@ -229,6 +229,12 @@ class AdminPanel {
     async getAudit() {}
 
     async logout() {}
+
+    async getProducts(page, limit, search, sort, order) {}
+    async getProduct(productId) {}
+    async createProduct(productId) {}
+    async updateProduct(productId) {}
+    async deleteProduct(productId) {}
 }
 
 const adminPanelService = new AdminPanel();
