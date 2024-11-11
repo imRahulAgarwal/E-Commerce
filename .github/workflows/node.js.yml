@@ -37,3 +37,28 @@ jobs:
               run: |
                   pm2 stop ecommerce >> /dev/null 2>&1 || true
                   pm2 start server.js --name ecommerce
+
+    client:
+        name: UI of the project
+        needs: build
+        runs-on: self-hosted
+        strategy:
+            matrix:
+                node-version: [20.x]
+
+        steps:
+            - name: Create .env file
+              working-directory: ./client/
+              run: echo "${{ secrets.CLIENT_PRODUCTION_ENV }}" > .env
+
+            - name: Install Node Modules
+              working-directory: ./client/
+              run: npm ci
+
+            - name: Execute NPM run build
+              working-directory: ./client/
+              run: npm run build
+
+            - name: Move build directory from client to /var/www/ECommerce
+              working-directory: ./client/
+              run: mv ./dist /var/www/ECommerce

@@ -46,7 +46,6 @@ export async function isNotLoggedIn(req, res, next) {
         }
     } catch (err) {
         // Token verification failed or not found in DB, proceed (user not logged in)
-        console.log(err);
     }
 
     // If no redirect, proceed to the next middleware
@@ -72,7 +71,6 @@ export async function isLoggedIn(req, res, next) {
         }
     } catch (err) {
         // Token verification failed or not found in DB, redirect to login page
-        console.log(err);
     }
 
     // If no token found or invalid, redirect to login
@@ -102,7 +100,6 @@ export async function isPanelUserNotAuthenticated(req, res, next) {
         }
     } catch (err) {
         // Token verification failed or not found in DB, proceed (user not logged in)
-        console.log(err);
     }
 
     // If no redirect, proceed to the next middleware
@@ -127,7 +124,6 @@ export async function isPanelUserAuthenticated(req, res, next) {
         }
     } catch (err) {
         // Token verification failed or not found in DB, redirect to login page
-        console.log(err);
     }
 
     // If no token found or invalid, redirect to login

@@ -6,7 +6,7 @@ export function generateToken(data, expiresIn = 86400) {
         let token = jwt.sign(data, JWT_SECRET, { expiresIn: expiresIn * 1000 });
         return token;
     } catch (error) {
-        throw new Error(error);
+        throw error;
     }
 }
 
@@ -18,6 +18,6 @@ export function verifyToken(token) {
         let payload = jwt.verify(token, JWT_SECRET);
         return payload;
     } catch (error) {
-        throw new Error(error);
+        throw error;
     }
 }
