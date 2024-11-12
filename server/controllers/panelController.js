@@ -925,7 +925,7 @@ export const getAuditById = asyncHandler(async (req, res, next) => {
 // @route   GET /api/panel/permissions
 export const getPermissions = asyncHandler(async (req, res, next) => {
     let permissions = await UserPermission.find({ uniqueName: { $ne: "manage_role" } });
-    return res.status(200).json({ success: true, data: permissions });
+    return res.status(200).json({ success: true, data: { permissions } });
 });
 
 // Role Management
@@ -933,16 +933,16 @@ export const getPermissions = asyncHandler(async (req, res, next) => {
 // @desc    Get list of roles
 // @route   GET /api/panel/roles
 export const getRoles = asyncHandler(async (req, res, next) => {
-    let roles = await UserRole.find({ isDeleted: false }).populate("permissions", "_id name");
-    return res.status(200).json({ success: true, data: roles });
+    let roles = await UserRole.find({ isDeleted: false }).populate("permissions", "_id name").select("-isDeleted");
+    return res.status(200).json({ success: true, data: { roles } });
 });
 
 // @desc    Get details of a specific role
 // @route   GET /api/panel/roles/:roleId
 export const getRoleById = asyncHandler(async (req, res, next) => {
     let { roleId } = req.params;
-    if (!roleId) {
-        return next(new ErrorHandler("Provide a role ID", 400));
+    if (!roleId || !validateObjectId(roleId)) {
+        return next(new ErrorHandler("Invalid Role ID format", 400));
     }
 
     let role = await UserRole.findOne({ _id: roleId, isDeleted: false }).populate("permissions", "_id name");
@@ -950,7 +950,7 @@ export const getRoleById = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("User role details not found", 404));
     }
 
-    return res.status(200).json({ success: true, data: role });
+    return res.status(200).json({ success: true, data: { role } });
 });
 
 // @desc    Create a new role
@@ -976,14 +976,25 @@ export const createRole = asyncHandler(async (req, res, next) => {
 
     await noteAudits(req.user._id, "POST", "Roles", { documentId: newRole.id });
 
-    return res.status(201).json({ success: true, message: "User role details added", data: newRole });
+    return res.status(201).json({
+        success: true,
+        message: "User role details added",
+        data: {
+            role: {
+                _id: newRole._id,
+                name,
+                createdAt: newRole.createdAt,
+                isDynamic: newRole.isDynamic,
+            },
+        },
+    });
 });
 
 // @desc    Update a role
 // @route   PUT /api/panel/roles/:roleId
 export const updateRole = asyncHandler(async (req, res, next) => {
     let { roleId } = req.params;
-    if (!validateObjectId(roleId)) {
+    if (!roleId || !validateObjectId(roleId)) {
         return next(new ErrorHandler("Invalid Role ID format", 400));
     }
 
@@ -1012,15 +1023,26 @@ export const updateRole = asyncHandler(async (req, res, next) => {
 
     await noteAudits(req.user._id, "PUT", "Roles", { documentId: updatedData.id });
 
-    return res.status(201).json({ success: true, message: "User role details updated", data: updatedData });
+    return res.status(201).json({
+        success: true,
+        message: "User role details updated",
+        data: {
+            role: {
+                _id: updatedData._id,
+                name,
+                createdAt: updatedData.createdAt,
+                isDynamic: updatedData.isDynamic,
+            },
+        },
+    });
 });
 
 // @desc    Delete a role
 // @route   DELETE /api/panel/roles/:roleId
 export const deleteRole = asyncHandler(async (req, res, next) => {
     let { roleId } = req.params;
-    if (!roleId) {
-        return next(new ErrorHandler("Provide a role ID", 400));
+    if (!roleId || !validateObjectId(roleId)) {
+        return next(new ErrorHandler("Invalid Role ID format", 400));
     }
 
     let role = await UserRole.findOne({ _id: roleId, isDeleted: false, isDynamic: true });

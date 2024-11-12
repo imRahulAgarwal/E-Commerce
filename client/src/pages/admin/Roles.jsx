@@ -1,28 +1,25 @@
-import React, { useEffect, useState } from "react";
-import { useReactTable, getCoreRowModel, flexRender, getPaginationRowModel } from "@tanstack/react-table";
+import React, { useCallback, useEffect, useState } from "react";
+import { useReactTable, getCoreRowModel, flexRender } from "@tanstack/react-table";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faEye, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
+import { faEdit, faEye, faTrashAlt, faPlus } from "@fortawesome/free-solid-svg-icons";
 import adminPanelService from "../../api/admin/api-admin";
 import moment from "moment";
 import { Link } from "react-router-dom";
+import loadingImage from "../../assets/loading.gif";
+import RoleForm from "../../components/admin/RoleForm/RoleForm";
 
 const Roles = () => {
     const [roles, setRoles] = useState([]);
-    const [roleId, setRoleId] = useState("");
     const [permissions, setPermissions] = useState([]);
-
-    const [pagination, setPagination] = useState({
-        pageIndex: 0,
-        pageSize: 10,
-    });
+    const [loading, setLoading] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [currentRole, setCurrentRole] = useState(null); // For editing role
 
     const columns = [
         { header: "Role Name", accessorKey: "name" },
         {
             header: "Created At",
-            accessorFn: (data, index) => {
-                return moment(data.createdAt).format("DD.MM.YYYY, hh:mm");
-            },
+            accessorFn: (data, index) => moment(data.createdAt).format("DD.MM.YYYY, hh:mm"),
         },
         {
             header: "Actions",
@@ -30,23 +27,28 @@ const Roles = () => {
                 <div className="flex justify-center gap-2">
                     <Link
                         to={`/panel/roles/${original._id}`}
-                        className="flex items-center px-2 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded"
-                        onClick={() => setRoleId(original._id)}>
+                        className="flex items-center px-2 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded">
                         <FontAwesomeIcon icon={faEye} className="mr-1" />
                         View
                     </Link>
-                    <button
-                        className="flex items-center px-2 py-1 text-white bg-yellow-500 hover:bg-yellow-600 rounded"
-                        onClick={() => setRoleId(original._id)}>
-                        <FontAwesomeIcon icon={faEdit} className="mr-1" />
-                        Edit
-                    </button>
-                    <button
-                        className="flex items-center px-2 py-1 text-white bg-red-500 hover:bg-red-600 rounded"
-                        onClick={() => setRoleId(original._id)}>
-                        <FontAwesomeIcon icon={faTrashAlt} className="mr-1" />
-                        Delete
-                    </button>
+                    {original.name !== "Admin" && (
+                        <>
+                            <button
+                                className="flex items-center px-2 py-1 text-white bg-yellow-500 hover:bg-yellow-600 rounded"
+                                onClick={() => openEditModal(original)}>
+                                <FontAwesomeIcon icon={faEdit} className="mr-1" />
+                                Edit
+                            </button>
+                            {original.isDynamic && (
+                                <button
+                                    className="flex items-center px-2 py-1 text-white bg-red-500 hover:bg-red-600 rounded"
+                                    onClick={() => deleteRole(original._id)}>
+                                    <FontAwesomeIcon icon={faTrashAlt} className="mr-1" />
+                                    Delete
+                                </button>
+                            )}
+                        </>
+                    )}
                 </div>
             ),
         },
@@ -55,19 +57,64 @@ const Roles = () => {
     const table = useReactTable({
         data: roles,
         columns,
-        state: { pagination },
-        onPaginationChange: setPagination,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
     });
 
+    const openEditModal = useCallback((role) => {
+        setCurrentRole(role);
+        setIsModalOpen(true);
+    }, []);
+
+    const openAddModal = useCallback(() => {
+        setIsModalOpen(true);
+    }, []);
+
+    const closeModal = useCallback(() => {
+        setIsModalOpen(false);
+        setCurrentRole(null);
+    }, []);
+
+    const handleModalSubmit = async (bodyData) => {
+        if (currentRole) {
+            // Edit existing role
+            const { data } = await adminPanelService.updateRole(currentRole._id, bodyData);
+            if (data && data.role) {
+                setRoles((prev) => prev.map((role) => (role._id === currentRole._id ? data.role : role)));
+            }
+        } else {
+            // Add new role
+            const { data } = await adminPanelService.createRole(bodyData);
+            if (data && data.role) {
+                setRoles((prev) => [...prev, data.role]);
+            }
+        }
+        setIsModalOpen(false); // Close the modal after submission
+    };
+
+    const deleteRole = useCallback(async (roleId) => {
+        const result = await adminPanelService.deleteRole(roleId);
+        if (result) {
+            setRoles((prev) => prev.filter((role) => role._id !== roleId));
+        }
+    }, []);
+
     useEffect(() => {
-        adminPanelService.getRoles().then(({ data }) => setRoles(data));
-        adminPanelService.getPermissions().then(({ data }) => setPermissions(data));
+        adminPanelService.getRoles().then(({ data }) => {
+            setRoles(data.roles);
+            setLoading(false);
+        });
+        adminPanelService.getPermissions().then(({ data }) => setPermissions(data.permissions));
     }, []);
 
     return (
         <div className="bg-white shadow-lg rounded-lg w-full">
+            <div className="flex justify-between items-center p-4">
+                <h2 className="text-xl font-bold">User Roles</h2>
+                <button onClick={openAddModal} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+                    <FontAwesomeIcon icon={faPlus} className="mr-1" />
+                    Add User Role
+                </button>
+            </div>
             <div className="w-full overflow-x-auto">
                 <table className="w-full text-center min-w-[600px]">
                     <thead>
@@ -82,46 +129,46 @@ const Roles = () => {
                         ))}
                     </thead>
                     <tbody>
-                        {table.getRowModel().rows.map((row, index) => (
-                            <tr key={row.id} className={index % 2 === 0 ? "bg-blue-100" : "bg-white"}>
-                                {row.getVisibleCells().map((cell) => (
-                                    <td key={cell.id} className="p-4">
-                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                    </td>
-                                ))}
+                        {loading ? (
+                            <tr>
+                                <td colSpan={columns.length} className="p-4">
+                                    <img
+                                        src={loadingImage}
+                                        width={40}
+                                        height={40}
+                                        alt="Loading GIF"
+                                        className="mx-auto"
+                                    />
+                                </td>
                             </tr>
-                        ))}
+                        ) : roles.length > 0 ? (
+                            table.getRowModel().rows.map((row, index) => (
+                                <tr key={row.id} className={index % 2 === 0 ? "bg-blue-100" : "bg-white"}>
+                                    {row.getVisibleCells().map((cell) => (
+                                        <td key={cell.id} className="p-4">
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan={columns.length} className="p-4">
+                                    No user roles found
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
-            <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-blue-50 rounded-b-lg">
-                <div className="flex space-x-1 mb-2 sm:mb-0">
-                    <button
-                        className="px-3 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded disabled:bg-gray-300"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}>
-                        Previous
-                    </button>
-                    <button
-                        className="px-3 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded disabled:bg-gray-300"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}>
-                        Next
-                    </button>
-                </div>
-                <div>
-                    <select
-                        className="px-2 py-1 border border-blue-400 rounded-md"
-                        value={table.getState().pagination.pageSize}
-                        onChange={(e) => table.setPageSize(Number(e.target.value))}>
-                        {[10, 50, 100, 200].map((pageSize) => (
-                            <option key={pageSize} value={pageSize}>
-                                Show {pageSize}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            </div>
+            {isModalOpen && (
+                <RoleForm
+                    onClose={closeModal}
+                    onSubmit={handleModalSubmit}
+                    initialData={currentRole || {}}
+                    permissions={permissions}
+                />
+            )}
         </div>
     );
 };
