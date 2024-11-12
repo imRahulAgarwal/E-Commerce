@@ -25,6 +25,7 @@ import panelUserSchema from "../schemas/panel-user.js";
 import productSizeSchema from "../schemas/product-size.js";
 import noteAudits from "../utils/note-audit.js";
 import customerSchema from "../schemas/customer.js";
+import Address from "../models/address.js";
 const DOMAIN = process.env.DOMAIN;
 const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD;
 
@@ -186,15 +187,27 @@ export const getDashboard = asyncHandler(async (req, res, next) => {});
 // @desc    Get list of customers
 // @route   GET /api/panel/customers
 export const getCustomers = asyncHandler(async (req, res, next) => {
-    let { page = 1, limit = 10, sort = "fName", order = "asc", search } = req.query;
+    let { page = 1, limit = 10, sort = "fName", order = "asc", search = "" } = req.query;
+
+    page = parseInt(page, 10) || 1;
+    limit = parseInt(limit, 10) || 10;
+
+    order = order.toLowerCase() === "desc" ? "desc" : "asc";
+
     let searchQuery = { isDeleted: false, isCustomer: true };
 
-    if (search) {
-        searchQuery.$or = [{ fName: { $regex: search, $options: "i" } }, { lName: { $regex: search, $options: "i" } }];
+    if (search.trim()) {
+        searchQuery.$or = [
+            { fName: { $regex: search, $options: "i" } },
+            { lName: { $regex: search, $options: "i" } },
+            { email: { $regex: search, $options: "i" } },
+            { number: { $regex: search, $options: "i" } },
+        ];
     }
 
-    if (order !== "asc" && order !== "desc") {
-        order = "asc";
+    const allowedSortFields = ["fName", "lName", "email", "number"];
+    if (!allowedSortFields.includes(sort)) {
+        sort = "fName";
     }
 
     const customers = await User.find(searchQuery, { fName: 1, lName: 1, email: 1, number: 1, createdAt: 1 })
@@ -211,7 +224,7 @@ export const getCustomers = asyncHandler(async (req, res, next) => {
             customers,
             pages: Math.ceil(total / limit),
             total,
-            page: parseInt(page),
+            page,
             limit,
         },
     });
@@ -234,9 +247,9 @@ export const getCustomerById = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Customer details not found", 404));
     }
 
-    customer.addresses = [];
+    customer.addresses = await Address.find({ userId: customer._id, isDeleted: false });
 
-    return res.status(200).json({ success: true, data: customer });
+    return res.status(200).json({ success: true, data: { customer } });
 });
 
 // @desc    Create a new customer

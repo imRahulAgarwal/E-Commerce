@@ -114,8 +114,8 @@ class AdminPanel {
 
     async profile() {}
 
-    async getCustomers(page, limit, search, sort, order) {
-        let url = `${apiUrl}/panel/customers?page=${page}&limit=${limit}`;
+    async getCustomers({ page, limit, search, sort, order }) {
+        let url = `${apiUrl}/panel/customers?page=${page}&limit=${limit}&search=${search}&sort=${sort}&order=${order}`;
 
         let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
         let jsonData = await response.json();
@@ -124,7 +124,9 @@ class AdminPanel {
         }
 
         toast.error(jsonData.error, toastCss);
+        return false;
     }
+
     async getCustomer(customerId) {
         let url = `${apiUrl}/panel/customers/${customerId}`;
 
@@ -135,6 +137,7 @@ class AdminPanel {
         }
 
         toast.error(jsonData.error, toastCss);
+        return false;
     }
 
     async getOrders(page, limit, search, sort, order) {}

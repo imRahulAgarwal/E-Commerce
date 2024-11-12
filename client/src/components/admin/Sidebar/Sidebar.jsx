@@ -19,7 +19,6 @@ const navLinks = [
     { icon: faTachometerAlt, text: "Dashboard", path: "/panel/dashboard" },
     { icon: faUserFriends, text: "Customers", path: "/panel/customers" },
     { icon: faBox, text: "Orders", path: "/panel/orders" },
-    { icon: faMoneyCheckAlt, text: "Transactions", path: "/panel/transactions" },
     { icon: faTags, text: "Products", path: "/panel/products" },
     { icon: faWarehouse, text: "Inventory", path: "/panel/inventory" },
     { icon: faUserShield, text: "Roles", path: "/panel/roles" },

@@ -10,7 +10,6 @@ import Roles from "./pages/admin/Roles";
 import Customers from "./pages/admin/Customers";
 import Audits from "./pages/admin/Audits";
 import Orders from "./pages/admin/Orders";
-import Transactions from "./pages/admin/Transactions";
 import Products from "./pages/admin/Products";
 import Inventory from "./pages/admin/Inventory";
 import Customer from "./pages/admin/Customer";
@@ -38,7 +37,6 @@ const CustomRouter = () => {
                 <Route path="panel/customers/add" element={<CustomerForm />} />
                 <Route path="panel/orders" element={<Orders />} />
                 <Route path="panel/orders/:orderId" element={<Order />} />
-                <Route path="panel/transactions" element={<Transactions />} />
                 <Route path="panel/products" element={<Products />} />
                 <Route path="panel/products/:productId" element={<Product />} />
                 <Route path="panel/products/add" element={<ProductForm />} />
