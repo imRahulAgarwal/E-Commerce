@@ -59,6 +59,10 @@ jobs:
               working-directory: ./client/
               run: npm run build
 
+            - name: Remove the ECommerce folder from /var/www
+              working-directory: /var/www
+              run: rm -rf ./ECommerce
+
             - name: Move build directory from client to /var/www/ECommerce
               working-directory: ./client/
               run: mv ./dist /var/www/ECommerce
