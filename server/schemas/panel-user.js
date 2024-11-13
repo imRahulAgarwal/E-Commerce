@@ -9,7 +9,6 @@ const panelUserSchema = Joi.object({
         .required()
         .trim()
         .label("Email"),
-    number: Joi.string().regex(numberPattern).min(10).max(15).trim().required().label("Phone Number"),
 }).options({ stripUnknown: true });
 
 export default panelUserSchema;

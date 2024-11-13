@@ -237,8 +237,8 @@ class AdminPanel {
         return false;
     }
 
-    async getPanelUsers(page, limit, search, sort, order) {
-        let url = `${apiUrl}/panel/panel-users`;
+    async getPanelUsers({ page, limit, search, sort, order }) {
+        let url = `${apiUrl}/panel/panel-users?page=${page}&limit=${limit}&search=${search}&sort=${sort}&order=${order}`;
 
         let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
         let jsonData = await response.json();
@@ -247,7 +247,9 @@ class AdminPanel {
         }
 
         toast.error(jsonData.error, toastCss);
+        return false;
     }
+
     async getPanelUser(panelUserId) {
         let url = `${apiUrl}/panel/panel-users/${panelUserId}`;
 
@@ -258,11 +260,58 @@ class AdminPanel {
         }
 
         toast.error(jsonData.error, toastCss);
+        return false;
     }
-    async createPanelUser() {}
-    async updatePanelUser() {}
 
-    async deletePanelUser() {}
+    async createPanelUser(data) {
+        let url = `${apiUrl}/panel/panel-users`;
+
+        let response = await fetch(url, {
+            method: "POST",
+            body: JSON.stringify(data),
+            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async updatePanelUser(panelUserId, data) {
+        let url = `${apiUrl}/panel/panel-users/${panelUserId}`;
+
+        let response = await fetch(url, {
+            method: "PUT",
+            body: JSON.stringify(data),
+            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async deletePanelUser(panelUserId) {
+        let url = `${apiUrl}/panel/panel-users/${panelUserId}`;
+
+        let response = await fetch(url, { method: "DELETE", headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return true;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
 
     async getReports(page, limit, search, sort, order) {}
     async getReport() {}

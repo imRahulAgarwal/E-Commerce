@@ -7,6 +7,7 @@ import moment from "moment";
 import { Link } from "react-router-dom";
 import loadingImage from "../../assets/loading.gif";
 import RoleForm from "../../components/admin/RoleForm/RoleForm";
+import ConfirmationModal from "../../components/admin/ConfirmationModal/ConfirmationModal";
 
 const Roles = () => {
     const [roles, setRoles] = useState([]);
@@ -14,6 +15,8 @@ const Roles = () => {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentRole, setCurrentRole] = useState(null); // For editing role
+    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false); // For delete confirmation
+    const [roleToDelete, setRoleToDelete] = useState(null); // Track role to delete
 
     const columns = [
         { header: "Role Name", accessorKey: "name" },
@@ -42,7 +45,7 @@ const Roles = () => {
                             {original.isDynamic && (
                                 <button
                                     className="flex items-center px-2 py-1 text-white bg-red-500 hover:bg-red-600 rounded"
-                                    onClick={() => deleteRole(original._id)}>
+                                    onClick={() => openConfirmationModal(original._id)}>
                                     <FontAwesomeIcon icon={faTrashAlt} className="mr-1" />
                                     Delete
                                 </button>
@@ -74,6 +77,16 @@ const Roles = () => {
         setCurrentRole(null);
     }, []);
 
+    const openConfirmationModal = (roleId) => {
+        setRoleToDelete(roleId);
+        setIsConfirmationOpen(true);
+    };
+
+    const closeConfirmationModal = () => {
+        setIsConfirmationOpen(false);
+        setRoleToDelete(null);
+    };
+
     const handleModalSubmit = async (bodyData) => {
         if (currentRole) {
             // Edit existing role
@@ -91,18 +104,26 @@ const Roles = () => {
         setIsModalOpen(false); // Close the modal after submission
     };
 
-    const deleteRole = useCallback(async (roleId) => {
-        const result = await adminPanelService.deleteRole(roleId);
-        if (result) {
-            setRoles((prev) => prev.filter((role) => role._id !== roleId));
-        }
-    }, []);
-
-    useEffect(() => {
+    const fetchRoles = async () => {
+        setLoading(true);
         adminPanelService.getRoles().then(({ data }) => {
             setRoles(data.roles);
             setLoading(false);
         });
+    };
+
+    const deleteRole = useCallback(async () => {
+        if (roleToDelete) {
+            const result = await adminPanelService.deleteRole(roleToDelete);
+            if (result) {
+                fetchRoles();
+            }
+            closeConfirmationModal();
+        }
+    }, [roleToDelete]);
+
+    useEffect(() => {
+        fetchRoles();
         adminPanelService.getPermissions().then(({ data }) => setPermissions(data.permissions));
     }, []);
 
@@ -167,6 +188,14 @@ const Roles = () => {
                     onSubmit={handleModalSubmit}
                     initialData={currentRole || {}}
                     permissions={permissions}
+                />
+            )}
+            {isConfirmationOpen && (
+                <ConfirmationModal
+                    isOpen={isConfirmationOpen}
+                    onClose={closeConfirmationModal}
+                    onConfirm={deleteRole}
+                    message="Are you sure you want to delete this role?"
                 />
             )}
         </div>

@@ -11,7 +11,7 @@ panelRouter.post("/login", isPanelUserNotAuthenticated, panelController.login);
 panelRouter.post("/forgot-password", isPanelUserNotAuthenticated, panelController.forgotPassword);
 panelRouter.post("/reset-password/:token", isPanelUserNotAuthenticated, panelController.resetPassword);
 
-panelRouter.use(isPanelUserAuthenticated);
+// panelRouter.use(isPanelUserAuthenticated);
 
 // Profile and Password Management
 panelRouter.get("/profile", panelController.getProfile);

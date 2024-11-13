@@ -1069,30 +1069,45 @@ export const deleteRole = asyncHandler(async (req, res, next) => {
 // @desc    Get list of panel users
 // @route   GET /api/panel-users
 export const getPanelUsers = asyncHandler(async (req, res, next) => {
-    let { page = 1, limit = 10, sort = "fName", order = "asc", search } = req.query;
-    let searchQuery = { isCustomer: false, isDeleted: false };
-    if (search) {
-        searchQuery.$or = [{ fName: { $regex: search, $options: "i" } }, { lName: { $regex: search, $options: "i" } }];
+    let { page = 1, limit = 10, sort = "fName", order = "asc", search = "" } = req.query;
+
+    page = parseInt(page, 10) || 1;
+    limit = parseInt(limit, 10) || 10;
+
+    order = order.toLowerCase() === "desc" ? "desc" : "asc";
+
+    let searchQuery = { isDeleted: false, isCustomer: false };
+
+    if (search.trim()) {
+        searchQuery.$or = [
+            { fName: { $regex: search, $options: "i" } },
+            { lName: { $regex: search, $options: "i" } },
+            { email: { $regex: search, $options: "i" } },
+        ];
     }
 
-    if (order !== "asc" && order !== "desc") {
-        order = "asc";
+    const allowedSortFields = ["fName", "lName", "email"];
+    if (!allowedSortFields.includes(sort)) {
+        sort = "fName";
     }
 
-    let panelUsers = await User.find(searchQuery, { fName: 1, role: 1, lName: 1, email: 1, number: 1 })
-        .sort({ [sort]: order })
+    const panelUsers = await User.find(searchQuery, { fName: 1, lName: 1, email: 1, role: 1 })
         .populate("role", "_id name")
+        .sort({ [sort]: order })
         .skip((page - 1) * limit)
-        .limit(limit);
+        .limit(limit)
+        .lean();
 
-    let total = await User.countDocuments(searchQuery);
+    const total = await User.countDocuments(searchQuery);
+
     return res.status(200).json({
         success: true,
         data: {
             panelUsers,
-            page: parseInt(page),
+            page,
             total,
             pages: Math.ceil(total / limit),
+            limit,
         },
     });
 });
@@ -1101,19 +1116,19 @@ export const getPanelUsers = asyncHandler(async (req, res, next) => {
 // @route   GET /api/panel-users/:panelUserId
 export const getPanelUserById = asyncHandler(async (req, res, next) => {
     let { panelUserId } = req.params;
-    if (!validateObjectId(panelUserId)) {
+    if (!panelUserId || !validateObjectId(panelUserId)) {
         return next(new ErrorHandler("Invalid Panel User ID format", 400));
     }
 
-    let panelUser = await User.findOne(
-        { _id: panelUserId, isDeleted: false, isCustomer: false },
-        { fName: 1, role: 1, lName: 1, email: 1, number: 1 }
-    ).populate({ path: "role", populate: { path: "permissions", select: "_id name" } });
+    let panelUser = await User.findOne({ _id: panelUserId, isDeleted: false, isCustomer: false })
+        .populate({ path: "role", populate: { path: "permissions", select: "_id name" } })
+        .select("fName lName email role");
+
     if (!panelUser) {
         return next(new ErrorHandler("Panel User details not found", 404));
     }
 
-    return res.status(200).json({ success: true, data: panelUser });
+    return res.status(200).json({ success: true, data: { panelUser } });
 });
 
 // @desc    Create a new panel user
@@ -1124,9 +1139,9 @@ export const createPanelUser = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler(validation.error.details[0].message, 400));
     }
 
-    let { fName, lName, email, number, roleId } = req.body;
+    let { fName, lName, email, roleId } = req.body;
 
-    if (!validateObjectId(roleId)) {
+    if (!roleId || !validateObjectId(roleId)) {
         return next(new ErrorHandler("Invalid Role ID format", 400));
     }
 
@@ -1141,16 +1156,16 @@ export const createPanelUser = asyncHandler(async (req, res, next) => {
     }
 
     let hashedPassword = hashPassword(DEFAULT_PASSWORD);
-    let newPanelUser = await User.create({ fName, lName, email, number, password: hashedPassword, role: userRole._id });
+    let newPanelUser = await User.create({ fName, lName, email, password: hashedPassword, role: userRole._id });
 
     await newPanelUser.populate("role", "_id name");
 
     await noteAudits(req.user._id, "POST", "Panel Users", { documentId: newPanelUser.id });
 
-    return res.status(200).json({
+    return res.status(201).json({
         success: true,
         message: "Panel user details added",
-        data: { fName, lName, email, number, role: newPanelUser.role },
+        data: { panelUser: { _id: newPanelUser._id, fName, lName, email, role: newPanelUser.role } },
     });
 });
 
@@ -1158,7 +1173,7 @@ export const createPanelUser = asyncHandler(async (req, res, next) => {
 // @route   PUT /api/panel-users/:panelUserId
 export const updatePanelUser = asyncHandler(async (req, res, next) => {
     let { panelUserId } = req.params;
-    if (!validateObjectId(panelUserId)) {
+    if (!panelUserId || !validateObjectId(panelUserId)) {
         return next(new ErrorHandler("Invalid Panel User ID format", 400));
     }
 
@@ -1195,12 +1210,12 @@ export const updatePanelUser = asyncHandler(async (req, res, next) => {
         { returnDocument: "after" }
     ).populate("role", "_id name");
 
-    await noteAudits(req.user._id, "PUT", "Panel Users", { documentId: updatedData.id });
+    // await noteAudits(req.user._id, "PUT", "Panel Users", { documentId: updatedData.id });
 
     return res.status(200).json({
         success: true,
         message: "Panel user details updated",
-        data: { fName, lName, email, number, role: updatedData.role },
+        data: { panelUser: { _id: updatedData._id, fName, lName, email, role: updatedData.role } },
     });
 });
 
@@ -1208,7 +1223,7 @@ export const updatePanelUser = asyncHandler(async (req, res, next) => {
 // @route   DELETE /api/panel-users/:panelUserId
 export const deletePanelUser = asyncHandler(async (req, res, next) => {
     let { panelUserId } = req.params;
-    if (!validateObjectId(panelUserId)) {
+    if (!panelUserId || !validateObjectId(panelUserId)) {
         return next(new ErrorHandler("Invalid Panel User ID format", 400));
     }
 
