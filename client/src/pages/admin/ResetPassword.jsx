@@ -2,16 +2,23 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-regular-svg-icons";
+import { useNavigate, useParams } from "react-router-dom";
+import adminPanelService from "../../api/admin/api-admin";
 
 const ResetPassword = () => {
+    const { token } = useParams();
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const { register, handleSubmit, formState } = useForm();
     const { errors, isSubmitting } = formState;
+    const navigate = useNavigate();
 
     async function onSubmit(data) {
-        await new Promise((res) => setTimeout(res, 10000)); // Simulated submission delay
-        console.log(data);
+        await adminPanelService.resetPassword({ ...data, token }).then((data) => {
+            if (data) {
+                return navigate("/panel/login");
+            }
+        });
     }
 
     return (

@@ -26,11 +26,11 @@ import productSizeSchema from "../schemas/product-size.js";
 import noteAudits from "../utils/note-audit.js";
 import customerSchema from "../schemas/customer.js";
 import Address from "../models/address.js";
+import Category from "../models/category.js";
+import categorySchema from "../schemas/categorySchema.js";
 const DOMAIN = process.env.DOMAIN;
+const FRONTEND_DOMAIN = process.env.FRONTEND_DOMAIN;
 const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD;
-
-// SORT all the read records by below attributes
-// page, limit, sort, order and search
 
 // Authentication and Password Reset
 
@@ -45,7 +45,7 @@ export const login = asyncHandler(async (req, res, next) => {
     const { email, password } = req.body;
 
     // Check if user exists
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email, isCustomer: false, isDeleted: false }).populate("role", "_id name");
     if (!user) {
         return next(new ErrorHandler("Invalid credentials", 401));
     }
@@ -65,12 +65,10 @@ export const login = asyncHandler(async (req, res, next) => {
     // Send response
     res.status(200).json({
         success: true,
-        token,
+        message: "User logged in successful",
         data: {
-            id: user._id,
-            fName: user.fName,
-            lName: user.lName,
-            email: user.email,
+            user: { id: user._id, fName: user.fName, lName: user.lName, email: user.email, role: user.role.name },
+            token,
         },
     });
 });
@@ -83,10 +81,8 @@ export const forgotPassword = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler(validation.error.details[0].message, 400));
     }
 
-    let customerRole = await UserRole.findOne({ name: "Customer", isDeleted: false, isDynamic: false });
-
     const { email } = req.body;
-    const user = await User.findOne({ email, role: { $ne: customerRole._id }, isDeleted: false });
+    const user = await User.findOne({ email, isCustomer: false, isDeleted: false });
     if (!user) {
         return next(new ErrorHandler("No user found with this email", 404));
     }
@@ -99,7 +95,7 @@ export const forgotPassword = asyncHandler(async (req, res, next) => {
     await user.save();
 
     // Send reset email
-    const resetUrl = `${DOMAIN}${resetToken}`;
+    const resetUrl = `${FRONTEND_DOMAIN}${resetToken}`;
 
     await sendEmail({
         to: user.email,
@@ -107,7 +103,7 @@ export const forgotPassword = asyncHandler(async (req, res, next) => {
         text: `Click the link to reset your password: ${resetUrl}`,
     });
 
-    res.status(200).json({ success: true, data: "Password reset email sent" });
+    res.status(200).json({ success: true, message: "E-Mail sent to reset password." });
 });
 
 // @desc    Reset password using token
@@ -128,7 +124,12 @@ export const resetPassword = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Invalid or expired token", 400));
     }
 
-    const user = await User.findOne({ _id: decoded.id, resetPasswordToken: token });
+    const user = await User.findOne({
+        _id: decoded.id,
+        resetPasswordToken: token,
+        isCustomer: false,
+        isDeleted: false,
+    });
     if (!user) {
         return next(new ErrorHandler("Invalid or expired token", 400));
     }
@@ -138,7 +139,7 @@ export const resetPassword = asyncHandler(async (req, res, next) => {
     user.loginTokens = [];
     await user.save();
 
-    res.status(200).json({ success: true, data: "Password reset successful" });
+    res.status(200).json({ success: true, message: "Password reset successful" });
 });
 
 // Profile and Password Management
@@ -146,8 +147,10 @@ export const resetPassword = asyncHandler(async (req, res, next) => {
 // @desc    Get logged-in panel user profile
 // @route   GET /api/panel/profile
 export const getProfile = asyncHandler(async (req, res, next) => {
-    let { fName, lName, email, number, role } = req.user;
-    return res.status(200).json({ success: true, profile: { fName, lName, email, number, role: role.name } });
+    let { fName, lName, email, number, role, id } = req.user;
+    return res
+        .status(200)
+        .json({ success: true, data: { user: { id, fName, lName, email, number, role: role.name } } });
 });
 
 // @desc    Change password for logged-in panel user
@@ -173,7 +176,7 @@ export const changePassword = asyncHandler(async (req, res, next) => {
     user.loginTokens = undefined;
     await user.save();
 
-    res.status(200).json({ success: true, data: "Password updated successfully" });
+    res.status(200).json({ success: true, message: "Password updated successfully" });
 });
 
 // Dashboard
@@ -234,8 +237,8 @@ export const getCustomers = asyncHandler(async (req, res, next) => {
 // @route   GET /api/panel/customers/:customerId
 export const getCustomerById = asyncHandler(async (req, res, next) => {
     let { customerId } = req.params;
-    if (!customerId) {
-        return next(new ErrorHandler("Provide a customer ID", 400));
+    if (!customerId || !validateObjectId(customerId)) {
+        return next(new ErrorHandler("Invalid Customer ID format", 400));
     }
 
     let customer = await User.findOne(
@@ -277,7 +280,7 @@ export const createCustomer = asyncHandler(async (req, res, next) => {
     return res.status(201).json({
         success: true,
         message: "Customer details added",
-        data: { fName, lName, email, number, _id: newCustomer._id },
+        data: { customer: { fName, lName, email, number, _id: newCustomer._id } },
     });
 });
 
@@ -345,123 +348,262 @@ export const getOrderById = asyncHandler(async (req, res, next) => {
     return res.status(200).json({ success: true, data: order });
 });
 
+// Category Management
+
+// @desc    Get list of categories
+// @route   GET /api/panel/categories
+export const getCategories = asyncHandler(async (req, res, next) => {
+    let categories = await Category.find({ isDeleted: false });
+    return res.status(200).json({ success: true, data: { categories } });
+});
+
+// @desc    Get details of a specific category
+// @route   GET /api/panel/categories/:categoryId
+export const getCategory = asyncHandler(async (req, res, next) => {
+    let { categoryId } = req.params;
+    if (!categoryId || !validateObjectId(categoryId)) {
+        return next(new ErrorHandler("Invalid Category ID format", 400));
+    }
+
+    let category = await Category.findOne({ _id: categoryId, isDeleted: false });
+    if (!category) {
+        return next(new ErrorHandler("Category details not found", 404));
+    }
+
+    return res.status(200).json({ success: true, data: { category } });
+});
+
+// @desc    Create a new category
+// @route   POST /api/panel/categories
+export const createCategory = asyncHandler(async (req, res, next) => {
+    let validation = categorySchema.validate(req.body);
+    if (validation.error) {
+        return next(new ErrorHandler(validation.error.details[0].message, 400));
+    }
+
+    let { name } = req.body;
+
+    let newCategory = await Category.create({ name });
+
+    await noteAudits(req.user, "POST", "Category", { documentId: newCategory.id });
+
+    return res.status(201).json({
+        success: true,
+        message: "Category details added",
+        data: { category: { _id: newCategory._id, name } },
+    });
+});
+
+// @desc    Update a category
+// @route   PUT /api/panel/categories/:categoryId
+export const udpateCategory = asyncHandler(async (req, res, next) => {
+    let { categoryId } = req.params;
+    if (!categoryId || !validateObjectId(categoryId)) {
+        return next(new ErrorHandler("Invalid Category ID format", 400));
+    }
+
+    let validation = categorySchema.validate(req.body);
+    if (validation.error) {
+        return next(new ErrorHandler(validation.error.details[0].message, 400));
+    }
+
+    let { name } = req.body;
+    let categoryExists = await Category.findOne({ _id: categoryId, isDeleted: false });
+    if (!categoryExists) {
+        return next(new ErrorHandler("Category details not found", 404));
+    }
+
+    let updatedData = await Category.findOneAndUpdate(
+        { _id: categoryId, isDeleted: false },
+        { $set: { name } },
+        { new: true }
+    );
+
+    await noteAudits(req.user, "PUT", "Category", { documentId: updatedData.id });
+
+    return res.status(200).json({
+        success: true,
+        message: "Category details updated",
+        data: { category: { _id: updatedData._id, name } },
+    });
+});
+
+// @desc    Delete a category
+// @route   DELETE /api/panel/categories/:categoryId
+export const deleteCategory = asyncHandler(async (req, res, next) => {
+    let { categoryId } = req.params;
+    if (!categoryId || !validateObjectId(categoryId)) {
+        return next(new ErrorHandler("Invalid Category ID format", 400));
+    }
+
+    let category = await Category.findOne({ _id: categoryId, isDeleted: false });
+    if (!category) {
+        return next(new ErrorHandler("Category details not found", 404));
+    }
+
+    let updateResult = await Category.updateOne({ _id: categoryId, isDeleted: false }, { $set: { isDeleted: true } });
+
+    if (!updateResult.modifiedCount) {
+        return next(new ErrorHandler("Internal server error", 500));
+    }
+
+    await noteAudits(req.user, "DELETE", "Category", { documentId: category.id });
+
+    return res.status(200).json({ success: true, message: "Category details removed" });
+});
+
 // Product Management
 
 // @desc    Get list of products
 // @route   GET /api/panel/products
 export const getProducts = asyncHandler(async (req, res, next) => {
-    const { page = 1, limit = 10, sortBy = "name", order = "asc", isActive, minPrice, maxPrice } = req.query;
+    let { page = 1, limit = 10, sort = "name", order = "asc", search } = req.query;
 
+    page = parseInt(page, 10) || 1;
+    limit = parseInt(limit, 10) || 10;
+
+    order = order.toLowerCase() === "desc" ? "desc" : "asc";
     const filter = { isDeleted: false };
-    if (isActive !== undefined) filter.isActive = isActive === "true";
-    if (minPrice) filter.price = { ...filter.price, $gte: parseFloat(minPrice) };
-    if (maxPrice) filter.price = { ...filter.price, $lte: parseFloat(maxPrice) };
 
-    if (order !== "asc" && order !== "desc") {
-        order = "asc";
+    if (search.trim()) {
+        filter.$or = [{ name: { $regex: search, $options: "i" } }];
+    }
+
+    const allowedSortFields = ["name", "price", "isActive"];
+    if (!allowedSortFields.includes(sort)) {
+        sort = "name";
     }
 
     const products = await Product.find(filter)
-        .sort({ [sortBy]: order })
+        .populate("category")
+        .sort({ [sort]: order })
         .skip((page - 1) * limit)
-        .limit(parseInt(limit));
+        .limit(limit)
+        .lean();
 
     const total = await Product.countDocuments(filter);
 
-    res.status(200).json({
+    return res.status(200).json({
         success: true,
-        data: products,
-        total,
-        page: parseInt(page),
-        pages: Math.ceil(total / limit),
+        data: {
+            products,
+            pages: Math.ceil(total / limit),
+            total,
+            page,
+            limit,
+        },
     });
 });
 
 // @desc    Get details of a specific product
 // @route   GET /api/panel/products/:productId
 export const getProductById = asyncHandler(async (req, res, next) => {
-    const product = await Product.findOne({ _id: req.params.productId, isDeleted: false });
+    const { productId } = req.params;
+    if (!productId || !validateObjectId(productId)) {
+        return next(new ErrorHandler("Invalid Product ID format", 400));
+    }
+
+    const product = await Product.findOne({ _id: productId, isDeleted: false }).lean();
 
     if (!product) {
         return next(new ErrorHandler("Product not found", 404));
     }
 
-    res.status(200).json({ success: true, data: product });
+    const productColours = await ProductColour.find({ productId, isDeleted: false }).lean();
+    for (const productColour of productColours) {
+        productColour.sizes = await ProductSize.find({ productColourId: productColour._id }).lean();
+        productColour.images = productColour.images.map((image) => DOMAIN + image.url);
+    }
+
+    product.colours = productColours;
+    res.status(200).json({ success: true, data: { product } });
 });
 
 // @desc    Create a new product
 // @route   POST /api/panel/products
 export const createProduct = asyncHandler(async (req, res, next) => {
-    const validation = productSchema.create.validate(req.body);
+    const validation = productSchema.validate(req.body);
     if (validation.error) {
         return next(new ErrorHandler(validation.error.details[0].message, 400));
     }
-    const product = new Product(req.body);
+
+    const { categoryId } = req.body;
+    if (!categoryId || !validateObjectId(categoryId)) {
+        return next(new ErrorHandler("Invalid Category ID format", 422));
+    }
+
+    const category = await Category.findOne({ _id: categoryId, isDeleted: false });
+    if (!category) {
+        return next(new ErrorHandler("Category details not found", 404));
+    }
+
+    const product = new Product({ category: categoryId, ...validation.value });
     await product.save();
 
-    await noteAudits(req.user._id, "POST", "Product", { documentId: product.id });
+    await noteAudits(req.user, "POST", "Product", { documentId: product.id });
 
-    return res.status(201).json({ success: true, data: product });
+    return res.status(201).json({ success: true, message: "Product details added", data: { product } });
 });
 
 // @desc    Update a product
 // @route   PUT /api/panel/products/:productId
 export const updateProduct = asyncHandler(async (req, res, next) => {
-    const validation = productSchema.update.validate(req.body);
+    const { productId } = req.params;
+    if (!productId || !validateObjectId(productId)) {
+        return next(new ErrorHandler("Invalid Product ID format", 400));
+    }
+
+    const { categoryId } = req.body;
+    if (!categoryId || !validateObjectId(categoryId)) {
+        return next(new ErrorHandler("Invalid Category ID format", 422));
+    }
+
+    const validation = productSchema.validate(req.body);
     if (validation.error) {
         return next(new ErrorHandler(validation.error.details[0].message, 400));
     }
 
+    const category = await Category.findOne({ _id: categoryId, isDeleted: false });
+    if (!category) {
+        return next(new ErrorHandler("Category details not found", 404));
+    }
+
     const product = await Product.findOneAndUpdate(
-        { _id: req.params.productId, isDeleted: false },
-        { $set: req.body },
-        { returnDocument: "after" }
-    );
+        { _id: productId, isDeleted: false },
+        { $set: { category: categoryId, ...validation.value } },
+        { new: true }
+    ).populate("category");
 
     if (!product) {
         return next(new ErrorHandler("Product not found", 404));
     }
 
-    await noteAudits(req.user._id, "PUT", "Product", { documentId: product.id });
+    await noteAudits(req.user, "PUT", "Product", { documentId: product.id });
 
-    return res.status(200).json({ success: true, data: product });
+    return res.status(200).json({ success: true, message: "Product details updated", data: { product } });
 });
 
 // @desc    Delete a product
 // @route   DELETE /api/panel/products/:productId
 export const deleteProduct = asyncHandler(async (req, res, next) => {
+    const { productId } = req.params;
+    if (!productId || !validateObjectId(productId)) {
+        return next(new ErrorHandler("Invalid Product ID format", 400));
+    }
+
     const product = await Product.findOneAndUpdate(
-        { _id: req.params.productId, isDeleted: false },
-        { isDeleted: true },
-        { returnDocument: "after" }
+        { _id: productId, isDeleted: false },
+        { $set: { isDeleted: true } },
+        { new: true }
     );
 
     if (!product) {
         return next(new ErrorHandler("Product not found", 404));
     }
 
-    await noteAudits(req.user._id, "DELETE", "Product", { documentId: product.id });
+    await noteAudits(req.user, "DELETE", "Product", { documentId: product.id });
 
     return res.status(200).json({ success: true, message: "Product deleted successfully" });
-});
-
-// @desc    Toggle product isActive status
-// @route   PATCH /api/panel/products/:productId/toggle-active
-export const toggleProductActiveStatus = asyncHandler(async (req, res, next) => {
-    const product = await Product.findOne({ _id: req.params.productId, isDeleted: false });
-    if (!product) {
-        return next(new ErrorHandler("Product not found", 404));
-    }
-
-    product.isActive = !product.isActive;
-    await product.save();
-
-    await noteAudits(req.user._id, "PATCH", "Product", {
-        documentId: product.id,
-        message: `Product active status -> ${product.isActive}`,
-    });
-
-    res.status(200).json({ success: true, data: product });
 });
 
 // Product Colour Management
@@ -470,30 +612,32 @@ export const toggleProductActiveStatus = asyncHandler(async (req, res, next) => 
 // @route   GET /api/panel/product/colours
 export const getProductColours = asyncHandler(async (req, res, next) => {
     let { productId } = req.query;
-    if (!validateObjectId(productId)) {
+    if (!productId || !validateObjectId(productId)) {
         return next(new ErrorHandler("Invalid Product ID format"));
     }
+
     let productExists = await Product.findOne({ _id: productId, isDeleted: false });
     if (!productExists) {
         return next(new ErrorHandler("Product not found", 404));
     }
 
     const colours = await ProductColour.find({ isDeleted: false });
-    return res.status(200).json({ success: true, data: colours });
+    return res.status(200).json({ success: true, message: "Product colour details added", data: { colours } });
 });
 
 // @desc    Get details of a specific product colour
 // @route   GET /api/panel/product/colours/:colourId
 export const getProductColourById = asyncHandler(async (req, res, next) => {
     let { colourId } = req.params;
-    if (!validateObjectId(colourId)) {
+    if (!colourId || !validateObjectId(colourId)) {
         return next(new ErrorHandler("Invalid Colour ID format", 400));
     }
 
     let { productId } = req.query;
-    if (!validateObjectId(productId)) {
+    if (!productId || !validateObjectId(productId)) {
         return next(new ErrorHandler("Invalid Product ID format"));
     }
+
     let productExists = await Product.findOne({ _id: productId, isDeleted: false });
     if (!productExists) {
         return next(new ErrorHandler("Product not found", 404));
@@ -504,7 +648,7 @@ export const getProductColourById = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Colour not found", 404));
     }
 
-    return res.status(200).json({ success: true, data: colour });
+    return res.status(200).json({ success: true, data: { colour } });
 });
 
 // @desc    Create a new product colour
@@ -516,7 +660,7 @@ export const createProductColour = [
     ]),
     asyncHandler(async (req, res, next, error) => {
         let { productId } = req.query;
-        if (!validateObjectId(productId)) {
+        if (!productId || !validateObjectId(productId)) {
             return next(new ErrorHandler("Invalid Product ID format"));
         }
 
@@ -537,6 +681,7 @@ export const createProductColour = [
             productId: req.body.productId,
             isDeleted: false,
         });
+
         if (existingColour) {
             return next(new ErrorHandler("Colour already exists for this product", 400));
         }
@@ -563,9 +708,9 @@ export const createProductColour = [
         newColour.set("images", images);
         await newColour.save();
 
-        await noteAudits(req.user._id, "POST", "Product Colour", { documentId: newColour.id });
+        await noteAudits(req.user, "POST", "Product Colour", { documentId: newColour.id });
 
-        res.status(201).json({ success: true, data: newColour });
+        res.status(201).json({ success: true, message: "Product colour added", data: { newColour } });
     }),
 ];
 
@@ -578,12 +723,12 @@ export const updateProductColour = [
     ]),
     asyncHandler(async (req, res, next) => {
         let { productId } = req.query;
-        if (!validateObjectId(productId)) {
+        if (!productId || !validateObjectId(productId)) {
             return next(new ErrorHandler("Invalid Product ID format"));
         }
 
         let { colourId } = req.params;
-        if (!validateObjectId(colourId)) {
+        if (!colourId || !validateObjectId(colourId)) {
             return next(new ErrorHandler("Invalid Colour ID format", 400));
         }
 
@@ -647,17 +792,22 @@ export const updateProductColour = [
         colour.set("images", images);
         await colour.save();
 
-        await noteAudits(req.user._id, "PUT", "Product Colour", { documentId: colour.id });
+        await noteAudits(req.user, "PUT", "Product Colour", { documentId: colour.id });
 
-        res.status(200).json({ success: true, data: colour });
+        res.status(200).json({ success: true, message: "Product colour updated", data: { colour } });
     }),
 ];
 
 // @desc    Delete a product colour
 // @route   DELETE /api/panel/product/colours/:colourId
 export const deleteProductColour = asyncHandler(async (req, res, next) => {
+    let { colourId } = req.params;
+    if (!colourId || !validateObjectId(colourId)) {
+        return next(new ErrorHandler("Invalid Product ID format"));
+    }
+
     const colour = await ProductColour.findOneAndUpdate(
-        { _id: req.params.colourId, isDeleted: false },
+        { _id: colourId, isDeleted: false },
         { isDeleted: true },
         { returnDocument: "after" }
     );
@@ -666,7 +816,7 @@ export const deleteProductColour = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Colour not found", 404));
     }
 
-    await noteAudits(req.user._id, "DELETE", "Product Colour", { documentId: colour.id });
+    await noteAudits(req.user, "DELETE", "Product Colour", { documentId: colour.id });
 
     return res.status(200).json({ success: true, message: "Colour removed successfully" });
 });
@@ -676,11 +826,19 @@ export const deleteProductColour = asyncHandler(async (req, res, next) => {
 export const getProductSizes = asyncHandler(async (req, res, next) => {
     const { productId, productColourId } = req.query;
 
-    // Validate product and color existence
+    if (!productId || !validateObjectId(productId)) {
+        return next(new ErrorHandler("Invalid Product ID format"));
+    }
+
+    if (!productColourId || !validateObjectId(productColourId)) {
+        return next(new ErrorHandler("Invalid Product Colour ID format"));
+    }
+
+    // Validate product and colour existence
     await validateExistence(productId, productColourId, next);
 
     const sizes = await ProductSize.find({ productColourId });
-    res.status(200).json({ success: true, data: sizes });
+    res.status(200).json({ success: true, data: { sizes } });
 });
 
 // @desc    Get details of a specific product size
@@ -689,7 +847,15 @@ export const getProductSizeById = asyncHandler(async (req, res, next) => {
     const { productId, productColourId } = req.query;
     const { sizeId } = req.params;
 
-    if (!validateObjectId(sizeId)) {
+    if (!productId || !validateObjectId(productId)) {
+        return next(new ErrorHandler("Invalid Product ID format"));
+    }
+
+    if (!productColourId || !validateObjectId(productColourId)) {
+        return next(new ErrorHandler("Invalid Product Colour ID format"));
+    }
+
+    if (!sizeId || !validateObjectId(sizeId)) {
         return next(new ErrorHandler("Invalid Product Size ID format", 400));
     }
 
@@ -699,13 +865,22 @@ export const getProductSizeById = asyncHandler(async (req, res, next) => {
     if (!size) {
         return next(new ErrorHandler("Product size not found", 404));
     }
-    res.status(200).json({ success: true, data: size });
+    res.status(200).json({ success: true, data: { size } });
 });
 
 // @desc    Create a new product size
 // @route   POST /api/panel/products/sizes
 export const createProductSize = asyncHandler(async (req, res, next) => {
     const { productId, productColourId } = req.query;
+
+    if (!productId || !validateObjectId(productId)) {
+        return next(new ErrorHandler("Invalid Product ID format"));
+    }
+
+    if (!productColourId || !validateObjectId(productColourId)) {
+        return next(new ErrorHandler("Invalid Product Colour ID format"));
+    }
+
     const validation = productSizeSchema.validate(req.body);
 
     if (validation.error) {
@@ -717,9 +892,9 @@ export const createProductSize = asyncHandler(async (req, res, next) => {
     const newSize = new ProductSize({ ...req.body, productColourId });
     await newSize.save();
 
-    await noteAudits(req.user._id, "POST", "Product Size", { documentId: newSize.id });
+    await noteAudits(req.user, "POST", "Product Size", { documentId: newSize.id });
 
-    res.status(201).json({ success: true, data: newSize });
+    res.status(201).json({ success: true, message: "Product size added", data: { newSize } });
 });
 
 // @desc    Update a product size
@@ -728,7 +903,15 @@ export const updateProductSize = asyncHandler(async (req, res, next) => {
     const { productId, productColourId } = req.query;
     const { sizeId } = req.params;
 
-    if (!validateObjectId(sizeId)) {
+    if (!productId || !validateObjectId(productId)) {
+        return next(new ErrorHandler("Invalid Product ID format"));
+    }
+
+    if (!productColourId || !validateObjectId(productColourId)) {
+        return next(new ErrorHandler("Invalid Product Colour ID format"));
+    }
+
+    if (!sizeId || !validateObjectId(sizeId)) {
         return next(new ErrorHandler("Invalid Product Size ID format", 400));
     }
 
@@ -745,40 +928,12 @@ export const updateProductSize = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Product size not found", 404));
     }
 
-    await noteAudits(req.user._id, "PUT", "Product Size", { documentId: updatedSize.id });
+    await noteAudits(req.user, "PUT", "Product Size", { documentId: updatedSize.id });
 
-    res.status(200).json({ success: true, data: updatedSize });
+    res.status(200).json({ success: true, message: "Product size updated", data: { updatedSize } });
 });
 
-// @desc    Update active status of a product size
-// @route   PATCH /api/panel/product/sizes/:sizeId
-export const toggleProductSizeActiveStatus = asyncHandler(async (req, res, next) => {
-    const { productId, productColourId } = req.query;
-    const { sizeId } = req.params;
-
-    if (!validateObjectId(sizeId)) {
-        return next(new ErrorHandler("Invalid Product Size ID format", 400));
-    }
-
-    await validateExistence(productId, productColourId, next);
-
-    const productSize = await ProductSize.findOne({ _id: sizeId });
-    if (!productSize) {
-        return next(new ErrorHandler("Product size not found", 404));
-    }
-
-    productSize.isActive = !productSize.isActive;
-    await productSize.save();
-
-    await noteAudits(req.user._id, "PATCH", "Product Size", {
-        documentId: updatedSize.id,
-        message: `Product size active status -> ${productSize.isActive}`,
-    });
-
-    res.status(200).json({ success: true, message: "Product size active status updated" });
-});
-
-// Function to validate existence of product and color
+// Function to validate existence of product and colour
 const validateExistence = async (productId, productColourId, next) => {
     if (!validateObjectId(productId)) {
         throw new ErrorHandler("Invalid Product ID format", 400);
@@ -793,89 +948,31 @@ const validateExistence = async (productId, productColourId, next) => {
         throw new ErrorHandler("Product not found", 404);
     }
 
-    const color = await ProductColour.findOne({ _id: productColourId, isDeleted: false });
-    if (!color) {
-        throw new ErrorHandler("Product color not found", 404);
+    const colour = await ProductColour.findOne({ _id: productColourId, isDeleted: false });
+    if (!colour) {
+        throw new ErrorHandler("Product colour not found", 404);
     }
 };
-
-// Product Inventory Management
-
-// @desc    Update the stock of a product
-// @route   PATCH /api/panel/product/stock
-export const updateProductStock = asyncHandler(async (req, res, next) => {
-    let { sizeId } = req.params;
-    if (!validateObjectId(sizeId)) {
-        return next(new ErrorHandler("Invalid Product Size ID format", 400));
-    }
-
-    let productSize = await ProductSize.findOne({ _id: sizeId });
-    if (!productSize) {
-        return next(new ErrorHandler("Product Size details not found", 404));
-    }
-
-    let quantity = req.body.quantity;
-    quantity = Number(quantity) ? Number(quantity) : productSize.quantity;
-    productSize.quantity = productSize.quantity + quantity;
-
-    await productSize.save();
-
-    await noteAudits(req.user._id, "PATCH", "Product Size", {
-        documentId: productSize.id,
-        data: {
-            update: `${quantity} units updated for the product size`,
-            before: productSize.quantity - quantity,
-            after: productSize.quantity,
-        },
-    });
-
-    return res.status(200).json({ success: true, message: "Product stock quantity updated" });
-});
-
-// @desc    Update the price of a product
-// @route   PATCH /api/panel/product/price
-export const updateProductPrice = asyncHandler(async (req, res, next) => {
-    let { productId } = req.params;
-    if (!validateObjectId(productId)) {
-        return next(new ErrorHandler("Invalid Product ID format", 400));
-    }
-
-    let productExists = await Product.findOne({ _id: productId, isDeleted: false });
-    if (!productExists) {
-        return next(new ErrorHandler("Product details not found", 404));
-    }
-
-    let price = req.body.price;
-    price = Number(price) ? Number(price) : productExists.price;
-
-    productExists.set("price", price);
-    await productExists.save();
-
-    await noteAudits(req.user._id, "PATCH", "Product", {
-        documentId: productExists.id,
-        data: {
-            update: `${price} amount updated for the product`,
-            before: productExists.price - price,
-            after: productExists.price,
-        },
-    });
-
-    return res.status(200).json({ success: true, message: "Product price updated" });
-});
 
 // Audit Management
 
 // @desc    Get list of audit records
 // @route   GET /api/panel/audits
 export const getAudits = asyncHandler(async (req, res, next) => {
-    let { page = 1, limit = 10, order = "asc", sort = "createdAt", search } = req.query;
-    let searchQuery = {};
-    if (search) {
-        searchQuery.targetModule = { $regex: search, $options: "i" };
-    }
+    let { page = 1, limit = 10, order = "asc", sort = "createdAt", search = "" } = req.query;
 
-    if (order !== "asc" && order !== "desc") {
-        order = "asc";
+    page = parseInt(page, 10) || 1;
+    limit = parseInt(limit, 10) || 10;
+
+    order = order.toLowerCase() === "desc" ? "desc" : "asc";
+
+    let searchQuery = {};
+
+    if (search.trim()) {
+        searchQuery.$or = [
+            { actionType: { $regex: search, $options: "i" } },
+            { targetModule: { $regex: search, $options: "i" } },
+        ];
     }
 
     let audits = await AuditLogs.find(searchQuery)
@@ -891,9 +988,10 @@ export const getAudits = asyncHandler(async (req, res, next) => {
         success: true,
         data: {
             audits,
-            page: parseInt(page),
+            page,
             total,
             pages: Math.ceil(total / limit),
+            limit,
         },
     });
 });
@@ -902,8 +1000,8 @@ export const getAudits = asyncHandler(async (req, res, next) => {
 // @route   GET /api/panel/audits/:auditId
 export const getAuditById = asyncHandler(async (req, res, next) => {
     let { auditId } = req.params;
-    if (!auditId) {
-        return next(new ErrorHandler("Provide an audit ID", 400));
+    if (!auditId || !validateObjectId(auditId)) {
+        return next(new ErrorHandler("Invalid Audit ID format", 400));
     }
 
     let audit = await AuditLogs.findOne({ _id: auditId }).populate({
@@ -916,7 +1014,7 @@ export const getAuditById = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Audit details not found", 404));
     }
 
-    return res.status(200).json({ success: true, data: audit });
+    return res.status(200).json({ success: true, data: { audit } });
 });
 
 // Permission Management
@@ -969,24 +1067,19 @@ export const createRole = asyncHandler(async (req, res, next) => {
     }
 
     for (const permission of permissions) {
-        await UserPermission.findOne({ _id: permission }).then((data) => permissionIds.push(data._id));
+        if (permission && validateObjectId(permission)) {
+            await UserPermission.findOne({ _id: permission }).then((data) => permissionIds.push(data._id));
+        }
     }
 
     let newRole = await UserRole.create({ name, description, permissions: permissionIds });
 
-    await noteAudits(req.user._id, "POST", "Roles", { documentId: newRole.id });
+    await noteAudits(req.user, "POST", "Roles", { documentId: newRole.id });
 
     return res.status(201).json({
         success: true,
         message: "User role details added",
-        data: {
-            role: {
-                _id: newRole._id,
-                name,
-                createdAt: newRole.createdAt,
-                isDynamic: newRole.isDynamic,
-            },
-        },
+        data: { role: newRole },
     });
 });
 
@@ -1012,28 +1105,23 @@ export const updateRole = asyncHandler(async (req, res, next) => {
     let permissionIds = [];
 
     for (const permission of permissions) {
-        await UserPermission.findOne({ _id: permission }).then((data) => permissionIds.push(data._id));
+        if (permission && validateObjectId(permission)) {
+            await UserPermission.findOne({ _id: permission }).then((data) => permissionIds.push(data._id));
+        }
     }
 
     let updatedData = await UserRole.findOneAndUpdate(
         { _id: roleId, isDeleted: false },
         { $set: { name, description, permissions: permissionIds } },
-        { returnDocument: "after" }
+        { new: true }
     );
 
-    await noteAudits(req.user._id, "PUT", "Roles", { documentId: updatedData.id });
+    await noteAudits(req.user, "PUT", "Roles", { documentId: updatedData.id });
 
     return res.status(201).json({
         success: true,
         message: "User role details updated",
-        data: {
-            role: {
-                _id: updatedData._id,
-                name,
-                createdAt: updatedData.createdAt,
-                isDynamic: updatedData.isDynamic,
-            },
-        },
+        data: { role: updatedData },
     });
 });
 
@@ -1059,7 +1147,7 @@ export const deleteRole = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Internal server error", 500));
     }
 
-    await noteAudits(req.user._id, "DELETE", "Roles", { documentId: role.id });
+    await noteAudits(req.user, "DELETE", "Roles", { documentId: role.id });
 
     return res.status(200).json({ success: true, message: "User role details removed" });
 });
@@ -1160,7 +1248,7 @@ export const createPanelUser = asyncHandler(async (req, res, next) => {
 
     await newPanelUser.populate("role", "_id name");
 
-    await noteAudits(req.user._id, "POST", "Panel Users", { documentId: newPanelUser.id });
+    await noteAudits(req.user, "POST", "Panel Users", { documentId: newPanelUser.id });
 
     return res.status(201).json({
         success: true,
@@ -1210,7 +1298,7 @@ export const updatePanelUser = asyncHandler(async (req, res, next) => {
         { returnDocument: "after" }
     ).populate("role", "_id name");
 
-    // await noteAudits(req.user._id, "PUT", "Panel Users", { documentId: updatedData.id });
+    await noteAudits(req.user, "PUT", "Panel Users", { documentId: updatedData.id });
 
     return res.status(200).json({
         success: true,
@@ -1241,7 +1329,7 @@ export const deletePanelUser = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Internal server error", 500));
     }
 
-    await noteAudits(req.user._id, "DELETE", "Panel Users", { documentId: panelUserExists.id });
+    await noteAudits(req.user, "DELETE", "Panel Users", { documentId: panelUserExists.id });
 
     return res.status(200).json({ success: true, message: "Panel user details removed" });
 });

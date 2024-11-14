@@ -135,22 +135,11 @@ const PanelUsers = () => {
             // Add new panel user
             const { data } = await adminPanelService.createPanelUser(bodyData);
             if (data && data.panelUser) {
-                setPanelUsers((prev) => [...prev, data.panelUser]);
+                fetchPanelUsers();
             }
         }
         setIsModalOpen(false); // Close the modal after submission
     };
-
-    // const deletePanelUser = useCallback(
-    //     async (panelUserId) => {
-    //         const result = await adminPanelService.deletePanelUser(panelUserId);
-    //         if (result) {
-    //             // Recall getPanelUsers to refresh the data and pagination
-    //             fetchPanelUsers();
-    //         }
-    //     },
-    //     [fetchPanelUsers]
-    // );
 
     const openConfirmationModal = (userId) => {
         setUserToDelete(userId);

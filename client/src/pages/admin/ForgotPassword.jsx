@@ -2,15 +2,20 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope } from "@fortawesome/free-regular-svg-icons";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import adminPanelService from "../../api/admin/api-admin";
 
 const ForgotPassword = () => {
     const { register, handleSubmit, formState } = useForm();
     const { errors, isSubmitting } = formState;
+    const navigate = useNavigate();
 
     async function onSubmit(data) {
-        await new Promise((res) => setTimeout(res, 10000)); // Simulated submission delay
-        console.log(data);
+        await adminPanelService.forgotPassword(data).then((data) => {
+            if (data) {
+                return navigate("/panel/login");
+            }
+        });
     }
 
     return (

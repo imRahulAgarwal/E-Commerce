@@ -4,7 +4,6 @@ import {
     faTachometerAlt,
     faUserFriends,
     faBox,
-    faMoneyCheckAlt,
     faTags,
     faWarehouse,
     faUserShield,
@@ -12,23 +11,36 @@ import {
     faChartLine,
     faClipboardList,
     faSignOutAlt,
+    faList,
 } from "@fortawesome/free-solid-svg-icons";
 import { NavLink } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import adminPanelService from "../../../api/admin/api-admin";
+import { logout } from "../../../store/auth/adminAuthSlice";
 
 const navLinks = [
     { icon: faTachometerAlt, text: "Dashboard", path: "/panel/dashboard" },
     { icon: faUserFriends, text: "Customers", path: "/panel/customers" },
     { icon: faBox, text: "Orders", path: "/panel/orders" },
+    { icon: faList, text: "Categories", path: "/panel/categories" },
     { icon: faTags, text: "Products", path: "/panel/products" },
-    { icon: faWarehouse, text: "Inventory", path: "/panel/inventory" },
     { icon: faUserShield, text: "Roles", path: "/panel/roles" },
     { icon: faUsersCog, text: "Panel Users", path: "/panel/panel-users" },
     { icon: faChartLine, text: "Reports", path: "/panel/reports" },
     { icon: faClipboardList, text: "Audits", path: "/panel/audits" },
-    { icon: faSignOutAlt, text: "Logout", path: "/panel/logout" },
 ];
 
 const Sidebar = ({ isOpen }) => {
+    const dispatch = useDispatch();
+
+    const handleLogout = () => {
+        adminPanelService.logout().then((data) => {
+            if (data) {
+                dispatch(logout());
+            }
+        });
+    };
+
     return (
         <div
             className={`fixed top-0 border-r border-black-opacity-20 left-0 bottom-0 z-50 w-60 bg-white shadow-md transition-transform duration-300 transform ${
@@ -56,6 +68,15 @@ const Sidebar = ({ isOpen }) => {
                         <span className="text-md">{link.text}</span>
                     </NavLink>
                 ))}
+                <button
+                    key={navLinks.length}
+                    onClick={handleLogout}
+                    className="w-full flex items-center p-4 cursor-pointer text-gray-700 gap-2 hover:bg-blue-50">
+                    <span className="w-6 flex justify-center">
+                        <FontAwesomeIcon icon={faSignOutAlt} className="text-lg text-blue-600" />
+                    </span>
+                    <span className="text-md">Logout</span>
+                </button>
             </nav>
         </div>
     );

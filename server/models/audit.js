@@ -5,7 +5,7 @@ const auditSchema = new Schema(
         userId: { type: Types.ObjectId, ref: "users" },
         actionType: String,
         targetModule: String,
-        details: Object,
+        changes: Object,
     },
     { versionKey: false, timestamps: true }
 );

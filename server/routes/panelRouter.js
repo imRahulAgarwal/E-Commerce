@@ -1,5 +1,3 @@
-// routes/panelRoutes.js
-
 import express from "express";
 import * as panelController from "../controllers/panelController.js"; // Importing all controller functions
 import { isPanelUserAuthenticated, isPanelUserNotAuthenticated } from "../middlewares/authMiddleware.js";
@@ -11,7 +9,7 @@ panelRouter.post("/login", isPanelUserNotAuthenticated, panelController.login);
 panelRouter.post("/forgot-password", isPanelUserNotAuthenticated, panelController.forgotPassword);
 panelRouter.post("/reset-password/:token", isPanelUserNotAuthenticated, panelController.resetPassword);
 
-// panelRouter.use(isPanelUserAuthenticated);
+panelRouter.use(isPanelUserAuthenticated);
 
 // Profile and Password Management
 panelRouter.get("/profile", panelController.getProfile);
@@ -29,11 +27,17 @@ panelRouter.post("/customers", panelController.createCustomer);
 panelRouter.get("/orders", panelController.getOrders);
 panelRouter.get("/orders/:orderId", panelController.getOrderById);
 
+// Category Management
+panelRouter.get("/categories", panelController.getCategories);
+panelRouter.get("/categories/:categoryId", panelController.getCategory);
+panelRouter.post("/categories", panelController.createCategory);
+panelRouter.put("/categories/:categoryId", panelController.udpateCategory);
+panelRouter.delete("/categories/:categoryId", panelController.deleteCategory);
+
 // Product Management
 panelRouter.get("/products", panelController.getProducts);
 panelRouter.get("/products/:productId", panelController.getProductById);
 panelRouter.post("/products", panelController.createProduct);
-panelRouter.patch("/products/:productId/toggle-active", panelController.toggleProductActiveStatus);
 panelRouter.put("/products/:productId", panelController.updateProduct);
 panelRouter.delete("/products/:productId", panelController.deleteProduct);
 
@@ -48,12 +52,7 @@ panelRouter.delete("/product/colours/:colourId", panelController.deleteProductCo
 panelRouter.get("/product/sizes", panelController.getProductSizes);
 panelRouter.get("/product/sizes/:sizeId", panelController.getProductSizeById);
 panelRouter.post("/product/sizes", panelController.createProductSize);
-panelRouter.patch("/product/sizes/:sizeId", panelController.toggleProductSizeActiveStatus);
 panelRouter.put("/product/sizes/:sizeId", panelController.updateProductSize);
-
-// Inventory Management
-panelRouter.patch("/product/stock/:sizeId", panelController.updateProductStock);
-panelRouter.patch("/product/price/:productId", panelController.updateProductPrice);
 
 // Audit Management
 panelRouter.get("/audits", panelController.getAudits);

@@ -3,116 +3,112 @@ import apiUrl from "../../config/config";
 import { toast } from "react-toastify";
 import toastCss from "../../config/toast";
 
-const getToken = () => {
-    return window.localStorage.getItem("token");
-};
+const getToken = () => window.localStorage.getItem("token");
 
 class AdminPanel {
-    async login(email, password) {
-        try {
-            const url = `${apiUrl}/panel/login`;
-            const body = JSON.stringify({ email, password });
-            const token = getToken();
+    async login({ email, password }) {
+        const url = `${apiUrl}/panel/login`;
+        const body = JSON.stringify({ email, password });
+        const token = getToken();
 
-            let response = await axios.post(url, body, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            });
+        let response = await fetch(url, {
+            method: "POST",
+            body,
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        });
 
-            let data = response.data;
-            if (data.success) {
-                window.localStorage.setItem("token", data.token);
-            } else {
-                toast.error(data.message, toastCss);
-            }
-        } catch (error) {
-            toast.error("Internal server error", toastCss);
+        const jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return jsonData;
         }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
     }
 
-    async changePassword(oldPassword, newPassword, confirmPassword) {
-        try {
-            const url = `${apiUrl}/panel/change-password`;
-            const body = JSON.stringify({ oldPassword, newPassword, confirmPassword });
-            const token = getToken();
+    async changePassword({ oldPassword, newPassword, confirmPassword }) {
+        const url = `${apiUrl}/panel/change-password`;
+        const body = JSON.stringify({ oldPassword, newPassword, confirmPassword });
+        const token = getToken();
 
-            if (token) {
-                let response = await axios.post(url, body, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                });
+        const response = await fetch(url, {
+            method: "POST",
+            body,
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+        });
 
-                let data = response.data;
-                if (data.success) {
-                    toast.success(data.message, toastCss);
-                } else {
-                    toast.error(data.message, toastCss);
-                }
-            } else {
-                toast.error("Login to proceed", toastCss);
-            }
-        } catch (error) {
-            toast.error("Internal server error", toastCss);
+        const jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return true;
         }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
     }
 
-    async resetPassword(newPassword, confirmPassword) {
-        try {
-            const url = `${apiUrl}/panel/reset-password`;
-            const body = JSON.stringify({ newPassword, confirmPassword });
-            const token = getToken();
+    async forgotPassword({ email }) {
+        const url = `${apiUrl}/panel/forgot-password`;
+        const body = JSON.stringify({ email });
+        const token = getToken();
 
-            if (!token) {
-                let response = await axios.post(url, body, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                });
+        const response = await fetch(url, {
+            method: "POST",
+            body,
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+        });
 
-                let data = response.data;
-                if (data.success) {
-                    toast.success(data.message, toastCss);
-                } else {
-                    toast.error(data.message, toastCss);
-                }
-            } else {
-                toast.error("User already logged in", toastCss);
-            }
-        } catch (error) {
-            toast.error("Internal server error", toastCss);
+        const jsonData = await response.json();
+
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return true;
         }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
     }
 
-    async forgotPassword(email) {
-        try {
-            const url = `${apiUrl}/panel/forgot-password`;
-            const body = JSON.stringify({ email });
-            const token = getToken();
+    async resetPassword({ newPassword, confirmPassword, token }) {
+        const url = `${apiUrl}/panel/reset-password/${token}`;
+        const body = JSON.stringify({ newPassword, confirmPassword });
 
-            let response = await axios.post(url, body, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            });
+        const response = await fetch(url, {
+            method: "POST",
+            body,
+            headers: { "Content-Type": "application/json" },
+        });
 
-            let data = response.data;
-            if (data.success) {
-                toast.success(data.message, toastCss);
-            } else {
-                toast.error(data.message, toastCss);
-            }
-        } catch (error) {
-            toast.error("Internal server error", toastCss);
+        const jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return true;
         }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
     }
 
-    async profile() {}
+    async profile() {
+        const url = `${apiUrl}/panel/profile`;
+        const token = getToken();
+
+        const resposne = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        const jsonData = await resposne.json();
+
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        return false;
+    }
 
     async getCustomers({ page, limit, search, sort, order }) {
         let url = `${apiUrl}/panel/customers?page=${page}&limit=${limit}&search=${search}&sort=${sort}&order=${order}`;
@@ -145,6 +141,82 @@ class AdminPanel {
 
     async getTransactions() {}
     async getTransaction() {}
+
+    async getCategories() {
+        let url = `${apiUrl}/panel/categories`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async getCategory(categoryId) {
+        let url = `${apiUrl}/panel/categories/${categoryId}`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async createCategory(data) {
+        let url = `${apiUrl}/panel/categories`;
+
+        let response = await fetch(url, {
+            method: "POST",
+            body: JSON.stringify(data),
+            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async updateCategory(categoryId, data) {
+        let url = `${apiUrl}/panel/categories/${categoryId}`;
+
+        let response = await fetch(url, {
+            method: "PUT",
+            body: JSON.stringify(data),
+            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async deleteCategory(categoryId) {
+        let url = `${apiUrl}/panel/categories/${categoryId}`;
+
+        let response = await fetch(url, { method: "DELETE", headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return true;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
 
     async getInventory() {}
     async updateInventory() {}
@@ -316,8 +388,8 @@ class AdminPanel {
     async getReports(page, limit, search, sort, order) {}
     async getReport() {}
 
-    async getAudits(page, limit, search, sort, order) {
-        let url = `${apiUrl}/panel/audits`;
+    async getAudits({ page, limit, search, sort, order }) {
+        let url = `${apiUrl}/panel/audits?page=${page}&limit=${limit}&search=${search}&sort=${sort}&order=${order}`;
 
         let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
         let jsonData = await response.json();
@@ -326,16 +398,149 @@ class AdminPanel {
         }
 
         toast.error(jsonData.error, toastCss);
+        return false;
     }
+
     async getAudit() {}
 
-    async logout() {}
+    async logout() {
+        const url = `${apiUrl}/panel/logout`;
+        const token = getToken();
 
-    async getProducts(page, limit, search, sort, order) {}
-    async getProduct(productId) {}
-    async createProduct(productId) {}
-    async updateProduct(productId) {}
-    async deleteProduct(productId) {}
+        const response = await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+        const jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async getProducts({ page, limit, search, sort, order }) {
+        let url = `${apiUrl}/panel/products?page=${page}&limit=${limit}&search=${search}&sort=${sort}&order=${order}`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async getProduct(productId) {
+        let url = `${apiUrl}/panel/products/${productId}`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async createProduct(data) {
+        let url = `${apiUrl}/panel/products`;
+
+        let response = await fetch(url, {
+            method: "POST",
+            body: JSON.stringify(data),
+            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async updateProduct(productId, data) {
+        let url = `${apiUrl}/panel/products/${productId}`;
+
+        let response = await fetch(url, {
+            method: "PUT",
+            body: JSON.stringify(data),
+            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async deleteProduct(productId) {
+        let url = `${apiUrl}/panel/products/${productId}`;
+
+        let response = await fetch(url, { method: "DELETE", headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return true;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async createProductColour(productId, data) {
+        const url = `${apiUrl}/panel/product/colours?productId=${productId}`;
+        const response = await fetch(url, {
+            method: "POST",
+            body: data,
+            headers: { Authorization: `Bearer ${getToken()}` },
+        });
+
+        const jsonData = await response.json();
+        console.log(jsonData);
+    }
+
+    async createProductSize(productId, colourId, data) {
+        const url = `${apiUrl}/panel/product/sizes?productId=${productId}&productColourId=${colourId}`;
+        const response = await fetch(url, {
+            method: "POST",
+            body: JSON.stringify(data),
+            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        });
+
+        const jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async updateProductSize(productSizeId, productId, colourId, data) {
+        const url = `${apiUrl}/panel/product/sizes/${productSizeId}?productId=${productId}&productColourId=${colourId}`;
+        const response = await fetch(url, {
+            method: "PUT",
+            body: JSON.stringify(data),
+            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        });
+
+        const jsonData = await response.json();
+        console.log(jsonData);
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
 }
 
 const adminPanelService = new AdminPanel();

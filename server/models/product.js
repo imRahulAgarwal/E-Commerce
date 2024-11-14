@@ -1,4 +1,4 @@
-import { Schema, model } from "mongoose";
+import { Schema, Types, model } from "mongoose";
 
 const productSchema = new Schema({
     name: String,
@@ -6,6 +6,7 @@ const productSchema = new Schema({
     isActive: { type: Boolean, default: true },
     isDeleted: { type: Boolean, default: false },
     price: Number,
+    category: { type: Types.ObjectId, ref: "categories" },
 });
 
 const Product = model("products", productSchema);

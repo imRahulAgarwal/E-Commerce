@@ -1,8 +1,8 @@
 import AuditLogs from "../models/audit.js";
 
-async function noteAudits(userId, actionType, targetModule, details) {
+async function noteAudits(user, actionType, targetModule, changes) {
     try {
-        await AuditLogs.create({ userId, actionType, targetModule, details });
+        await AuditLogs.create({ userId: user?._id, actionType, targetModule, changes });
         return true;
     } catch (error) {
         throw new Error(error);

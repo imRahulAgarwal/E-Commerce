@@ -3,14 +3,26 @@ import { useForm } from "react-hook-form";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faEye, faEyeSlash } from "@fortawesome/free-regular-svg-icons";
 import adminPanelService from "../../api/admin/api-admin";
+import { useDispatch } from "react-redux";
+import { login } from "../../store/auth/adminAuthSlice";
 
 const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
-    const { register, handleSubmit, formState } = useForm();
+    const { register, handleSubmit, formState, reset } = useForm();
     const { errors, isSubmitting } = formState;
+    const dispatch = useDispatch();
 
     async function onSubmit(data) {
-        await adminPanelService.login(data.email, data.password);
+        adminPanelService.login(data).then((data) => {
+            if (data) {
+                const {
+                    data: { user, token },
+                } = data;
+                window.localStorage.setItem("token", token);
+                dispatch(login(user));
+                reset();
+            }
+        });
     }
 
     return (

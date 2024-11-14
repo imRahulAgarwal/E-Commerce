@@ -1,19 +1,21 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye, faEyeSlash, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import { useDispatch, useSelector } from "react-redux";
+import adminPanelService from "../../api/admin/api-admin";
+import { logout } from "../../store/auth/adminAuthSlice";
 
 const Profile = () => {
+    const { user } = useSelector((state) => state.adminAuth);
+    const dispatch = useDispatch();
+
     const [activeTab, setActiveTab] = useState("Profile");
     const [showPassword, setShowPassword] = useState({
         oldPassword: false,
         newPassword: false,
         confirmPassword: false,
     });
-    const [loginTokens, setLoginTokens] = useState([
-        { id: 1, time: "2023-11-01 10:30 AM" },
-        { id: 2, time: "2023-11-02 11:00 AM" },
-    ]);
 
     const { register, handleSubmit, formState } = useForm();
     const { errors } = formState;
@@ -22,21 +24,17 @@ const Profile = () => {
     };
 
     const handlePasswordSubmit = async (data) => {
-        console.log("Changing password...", data);
-        await new Promise((resolve) => setTimeout(resolve, 10000)); // Simulate async operation
-        console.log("Password changed!");
-    };
-
-    const handleRemoveToken = async (id) => {
-        console.log("Removing token...", id);
-        await new Promise((resolve) => setTimeout(resolve, 10000)); // Simulate async operation
-        setLoginTokens((tokens) => tokens.filter((token) => token.id !== id));
+        adminPanelService.changePassword(data).then((data) => {
+            if (data) {
+                dispatch(logout());
+                window.localStorage.removeItem("token");
+            }
+        });
     };
 
     const tabs = [
         { name: "Profile", content: ProfileTabContent() },
         { name: "Change Password", content: ChangePasswordTabContent() },
-        { name: "Login Tokens", content: LoginTokensTabContent() },
     ];
 
     // Profile Tab Content
@@ -45,10 +43,11 @@ const Profile = () => {
             <div className="flex flex-col items-center lg:items-start w-full space-y-4">
                 <div className="w-24 h-24 bg-gray-300 rounded-full mb-4"></div>
                 <div className="w-full space-y-2 text-gray-700">
-                    <div className="bg-gray-100 p-3 rounded-md">Name: John Doe</div>
-                    <div className="bg-gray-100 p-3 rounded-md">Email: john@example.com</div>
-                    <div className="bg-gray-100 p-3 rounded-md">Phone Number: +1234567890</div>
-                    <div className="bg-gray-100 p-3 rounded-md">Role: Admin</div>
+                    <div className="bg-gray-100 p-3 rounded-md">
+                        Name: {user.fName} {user.lName}
+                    </div>
+                    <div className="bg-gray-100 p-3 rounded-md">Email: {user.email}</div>
+                    <div className="bg-gray-100 p-3 rounded-md">Role: {user.role}</div>
                 </div>
             </div>
         );
@@ -103,30 +102,6 @@ const Profile = () => {
                     Change Password
                 </button>
             </form>
-        );
-    }
-
-    // Login Tokens Tab Content
-    function LoginTokensTabContent() {
-        return (
-            <div className="space-y-4 w-full">
-                {loginTokens.map((token) => (
-                    <div
-                        key={token.id}
-                        className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 border p-3 rounded-md">
-                        <div>
-                            <span>Time: </span>
-                            <span className="font-medium">{token.time}</span>
-                        </div>
-                        <button
-                            onClick={() => handleRemoveToken(token.id)}
-                            className="flex items-center text-red-600 border border-red-600 p-2 rounded-md hover:bg-red-100">
-                            <FontAwesomeIcon icon={faTrash} className="mr-2" />
-                            Remove
-                        </button>
-                    </div>
-                ))}
-            </div>
         );
     }
 
