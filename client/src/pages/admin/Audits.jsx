@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useReactTable, getCoreRowModel, flexRender } from "@tanstack/react-table";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
 import adminPanelService from "../../api/admin/api-admin";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
 import moment from "moment";
 import useDebounce from "../../hooks/useDebounce";
 import loadingImage from "../../assets/loading.gif";
+import { Link } from "react-router-dom";
 
 const Audits = () => {
     const [audits, setAudits] = useState([]);
@@ -34,10 +34,12 @@ const Audits = () => {
             header: "Actions",
             cell: ({ row }) => (
                 <div className="flex justify-center gap-2">
-                    <button className="flex items-center px-2 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded">
+                    <Link
+                        to={`/panel/audits/${row.original._id}`}
+                        className="flex items-center px-2 py-1 text-white bg-blue-500 hover:bg-blue-600 rounded">
                         <FontAwesomeIcon icon={faEye} className="mr-1" />
                         View
-                    </button>
+                    </Link>
                 </div>
             ),
         },

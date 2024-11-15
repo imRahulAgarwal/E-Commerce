@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from "@fortawesome/free-solid-svg-icons";
 import { useForm } from "react-hook-form";
 import adminPanelService from "../../../api/admin/api-admin";
 
-const ProductColourModal = ({ isOpen, onClose, onSave, initialData, productId }) => {
+const ProductColourModal = ({ onClose, initialData, productId, onSave }) => {
     const [mainImage, setMainImage] = useState(null);
     const [otherImages, setOtherImages] = useState([]); // Start with an empty array for other images
+    const [removeImages, setRemoveImages] = useState([]);
 
     const {
         register,
@@ -53,6 +54,9 @@ const ProductColourModal = ({ isOpen, onClose, onSave, initialData, productId })
     // Handler to remove a specific other image
     const handleRemoveOtherImage = (id) => {
         setOtherImages((prev) => prev.map((img) => (img.id === id ? { ...img, file: null } : img)));
+        if (initialData && initialData.images.some((img) => img.id === id) && !removeImages.includes(id)) {
+            setRemoveImages((prev) => [...prev, id]);
+        }
     };
 
     // Handler to remove an other image field entirely
@@ -73,18 +77,41 @@ const ProductColourModal = ({ isOpen, onClose, onSave, initialData, productId })
 
         formData.append("colour", data.colour);
 
-        formData.append("main-image", mainImage);
+        if (mainImage instanceof File) {
+            formData.append("main-image", mainImage);
+        }
 
         otherImages.forEach((image, index) => {
-            if (image.file) {
+            if (image.file && !String(image.id).startsWith("removed-")) {
+                // Only add images that haven’t been marked as removed
                 formData.append(`other-image`, image.file);
             }
         });
 
-        adminPanelService.createProductColour(productId, formData);
+        if (initialData) {
+            // Send only unique removeImages to the server
+            const uniqueRemoveImages = Array.from(new Set(removeImages));
+            uniqueRemoveImages.forEach((id) => {
+                formData.append("removeImages", id);
+            });
+        }
+
+        await onSave(formData);
+        reset();
     };
 
-    if (!isOpen) return null;
+    useEffect(() => {
+        if (initialData) {
+            const isDefault = initialData.images.find((image) => image.isDefault);
+            if (isDefault) {
+                setMainImage(isDefault.file);
+            }
+            const isNotDefault = initialData.images
+                .filter((image) => !image.isDefault)
+                .map(({ file, id }) => ({ file, id }));
+            setOtherImages(isNotDefault);
+        }
+    }, [initialData]);
 
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 overflow-y-auto">
@@ -118,7 +145,7 @@ const ProductColourModal = ({ isOpen, onClose, onSave, initialData, productId })
                         {mainImage ? (
                             <div className="relative">
                                 <img
-                                    src={URL.createObjectURL(mainImage)}
+                                    src={mainImage.name ? URL.createObjectURL(mainImage) : mainImage}
                                     alt="Selected"
                                     className="w-full h-auto mb-2 rounded border"
                                 />
@@ -151,7 +178,7 @@ const ProductColourModal = ({ isOpen, onClose, onSave, initialData, productId })
                                 {image.file ? (
                                     <div className="relative">
                                         <img
-                                            src={URL.createObjectURL(image.file)}
+                                            src={image.file.name ? URL.createObjectURL(image.file) : image.file}
                                             alt={`Other Image ${index + 1}`}
                                             className="w-full h-auto mb-2 rounded border"
                                         />

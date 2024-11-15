@@ -22,7 +22,7 @@ const Roles = () => {
         { header: "Role Name", accessorKey: "name" },
         {
             header: "Created At",
-            accessorFn: (data, index) => moment(data.createdAt).format("DD.MM.YYYY, hh:mm"),
+            accessorFn: (data, index) => moment(data.createdAt).format("DD.MM.YYYY, hh:mm A"),
         },
         {
             header: "Actions",

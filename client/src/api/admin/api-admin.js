@@ -401,7 +401,19 @@ class AdminPanel {
         return false;
     }
 
-    async getAudit() {}
+    async getAudit(auditId) {
+        const url = `${apiUrl}/panel/audits/${auditId}`;
+        const token = getToken();
+
+        const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        const jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
 
     async logout() {
         const url = `${apiUrl}/panel/logout`;
@@ -502,7 +514,48 @@ class AdminPanel {
         });
 
         const jsonData = await response.json();
-        console.log(jsonData);
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return true;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async updateProductColour(productId, productColourId, data) {
+        const url = `${apiUrl}/panel/product/colours/${productColourId}?productId=${productId}`;
+        const response = await fetch(url, {
+            method: "PUT",
+            body: data,
+            headers: { Authorization: `Bearer ${getToken()}` },
+        });
+
+        const jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return true;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async deleteProductColour(productColourId) {
+        const url = `${apiUrl}/panel/product/colours/${productColourId}`;
+        const response = await fetch(url, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${getToken()}` },
+        });
+
+        const jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return true;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
     }
 
     async createProductSize(productId, colourId, data) {
@@ -532,7 +585,7 @@ class AdminPanel {
         });
 
         const jsonData = await response.json();
-        console.log(jsonData);
+
         if (jsonData.success) {
             toast.success(jsonData.message, toastCss);
             return jsonData;

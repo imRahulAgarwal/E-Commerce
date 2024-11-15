@@ -512,7 +512,12 @@ export const getProductById = asyncHandler(async (req, res, next) => {
     const productColours = await ProductColour.find({ productId, isDeleted: false }).lean();
     for (const productColour of productColours) {
         productColour.sizes = await ProductSize.find({ productColourId: productColour._id }).lean();
-        productColour.images = productColour.images.map((image) => DOMAIN + image.url);
+
+        productColour.images = productColour.images.map((image) => ({
+            isDefault: image.isDefault,
+            file: DOMAIN + image.url,
+            id: image._id,
+        }));
     }
 
     product.colours = productColours;
@@ -758,14 +763,10 @@ export const updateProductColour = [
         let mainImage = colour.images.filter((image) => image.isDefault)[0];
         let images = [];
 
-        if (removeImages.includes(mainImage.id)) {
-            if (!allImages["main-image"] || !allImages["main-image"].length) {
-                return next(new ErrorHandler("Main Image is required", 400));
-            } else {
-                removeImage(mainImage.url);
-                mainImage = saveImage(colour.productId.toString(), colour.id, allImages["main-image"][0]);
-                images.push({ url: mainImage, isDefault: true });
-            }
+        if (allImages["main-image"] && allImages["main-image"].length) {
+            removeImage(mainImage.url);
+            mainImage = saveImage(colour.productId.toString(), colour.id, allImages["main-image"][0]);
+            images.push({ url: mainImage, isDefault: true });
         } else {
             images.push(mainImage);
         }
@@ -889,7 +890,7 @@ export const createProductSize = asyncHandler(async (req, res, next) => {
 
     await validateExistence(productId, productColourId, next);
 
-    const newSize = new ProductSize({ ...req.body, productColourId });
+    const newSize = new ProductSize({ ...validation.value, productColourId });
     await newSize.save();
 
     await noteAudits(req.user, "POST", "Product Size", { documentId: newSize.id });

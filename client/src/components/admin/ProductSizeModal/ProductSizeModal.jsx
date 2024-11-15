@@ -4,7 +4,7 @@ import adminPanelService from "../../../api/admin/api-admin";
 import { toast } from "react-toastify";
 import toastCss from "../../../config/toast";
 
-const ProductSizeModal = ({ onClose, initialData = {}, colourId, productId }) => {
+const ProductSizeModal = ({ onClose, initialData = {}, colourId, productId, onSave }) => {
     const {
         register,
         control,
@@ -20,7 +20,7 @@ const ProductSizeModal = ({ onClose, initialData = {}, colourId, productId }) =>
         },
     });
 
-    const submitHandler = (data) => {
+    const submitHandler = async (data) => {
         if (!productId) {
             return toast.error("Product ID is required", toastCss);
         }
@@ -28,11 +28,8 @@ const ProductSizeModal = ({ onClose, initialData = {}, colourId, productId }) =>
             return toast.error("Colour ID is required", toastCss);
         }
 
-        if (initialData._id) {
-            adminPanelService.updateProductSize(initialData._id, productId, colourId, data).then(({ data }) => {});
-        } else {
-            adminPanelService.createProductSize(productId, colourId, data).then(({ data }) => {});
-        }
+        await onSave(data);
+        reset();
     };
 
     return (

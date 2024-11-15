@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { createBrowserRouter, Route, createRoutesFromElements, RouterProvider, Navigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import App from "./App";
@@ -25,18 +25,27 @@ import CustomerForm from "./pages/admin/CustomerForm";
 import Categories from "./pages/admin/Categories";
 import adminPanelService from "./api/admin/api-admin";
 import { login } from "./store/auth/adminAuthSlice";
+import LoadingPage from "./components/admin/Loading/Loading";
 
 const CustomRouter = () => {
     const loginStatus = useSelector((state) => state.adminAuth.status);
     const dispatch = useDispatch();
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        adminPanelService.profile().then(({ data }) => {
-            if (data) {
-                dispatch(login(data.user));
-            }
-        });
+        adminPanelService
+            .profile()
+            .then(async ({ data }) => {
+                if (data) {
+                    dispatch(login(data.user));
+                }
+            })
+            .finally(() => setLoading(false));
     }, []);
+
+    if (loading) {
+        return <LoadingPage />;
+    }
 
     const router = createBrowserRouter(
         createRoutesFromElements(

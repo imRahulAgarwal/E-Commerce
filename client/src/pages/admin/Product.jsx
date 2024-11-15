@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import adminPanelService from "../../api/admin/api-admin"; // Replace with actual service for fetching products
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -6,6 +6,7 @@ import { faEdit, faTrash, faPlus } from "@fortawesome/free-solid-svg-icons";
 import loadingImage from "../../assets/loading.gif";
 import ProductColourModal from "../../components/admin/ProductColourModal/ProductColourModal";
 import ProductSizeModal from "../../components/admin/ProductSizeModal/ProductSizeModal";
+import ConfirmationModal from "../../components/admin/ConfirmationModal/ConfirmationModal";
 
 const ProductDetails = () => {
     const { productId } = useParams();
@@ -13,18 +14,30 @@ const ProductDetails = () => {
     const [loading, setLoading] = useState(true);
     const [isColourModalOpen, setIsColourModalOpen] = useState(false);
     const [currentColour, setCurrentColour] = useState(null);
+    const [colourToDelete, setColourToDelete] = useState("");
 
     const [isSizeModalOpen, setIsSizeModalOpen] = useState(false);
     const [currentSize, setCurrentSize] = useState(null);
     const [colourId, setColourId] = useState("");
 
-    useEffect(() => {
+    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false); // New state for confirmation modal
+
+    const fetchProduct = () => {
         adminPanelService.getProduct(productId).then(async ({ data }) => {
             setLoading(false);
             if (data) {
                 setProduct(data.product);
             }
         });
+    };
+
+    const closeConfirmationModal = () => {
+        setIsConfirmationOpen(false);
+        setColourToDelete("");
+    };
+
+    useEffect(() => {
+        fetchProduct();
     }, [productId]);
 
     const handleColourModalClose = () => {
@@ -55,17 +68,42 @@ const ProductDetails = () => {
         setIsColourModalOpen(true);
     };
 
-    const handleSaveColour = async (colourData) => {
-        // Logic for saving colour to backend
-        // Update state if necessary
-        handleColourModalClose();
+    const handleDeleteColour = async (colourId) => {
+        setColourToDelete(colourId);
+        setIsConfirmationOpen(true);
     };
 
-    const handleDeleteColour = async (colourId) => {
-        // Delete colour logic here, update product data afterward
-    };
+    const deleteProduct = useCallback(async () => {
+        if (colourToDelete) {
+            const result = await adminPanelService.deleteProductColour(colourToDelete);
+            if (result) {
+                fetchProduct(); // Reload data to ensure pagination is accurate
+            }
+            closeConfirmationModal(); // Close the confirmation modal
+        }
+    }, [colourToDelete]);
 
     const handleDeleteSize = async () => {};
+
+    const handleProductColourSave = async (data) => {
+        if (currentColour) {
+            await adminPanelService.updateProductColour(productId, currentColour._id, data);
+        } else {
+            await adminPanelService.createProductColour(productId, data);
+        }
+        handleColourModalClose();
+        fetchProduct();
+    };
+
+    const handleProductSizeSave = async (data) => {
+        if (currentSize) {
+            await adminPanelService.updateProductSize(currentSize._id, productId, colourId, data);
+        } else {
+            await adminPanelService.createProductSize(productId, colourId, data);
+        }
+        handleSizeModalClose();
+        fetchProduct();
+    };
 
     return (
         <div className="bg-white shadow-lg rounded-lg w-full p-6">
@@ -109,7 +147,7 @@ const ProductDetails = () => {
                                     <div className="flex justify-between items-center mb-2">
                                         <h3 className="text-xl font-semibold text-blue-700">{colour.colour}</h3>
                                         <div className="space-x-3">
-                                            <button onClick={() => handleEditColour(colour)}>
+                                            <button onClick={() => handleEditColour(colour._id)}>
                                                 <FontAwesomeIcon icon={faEdit} className="text-green-500" />
                                             </button>
                                             <button onClick={() => handleDeleteColour(colour._id)}>
@@ -119,12 +157,12 @@ const ProductDetails = () => {
                                     </div>
 
                                     {/* Display Images */}
-                                    <div className="grid grid-cols-4 gap-4 mt-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
                                         {colour.images && colour.images.length > 0 ? (
                                             colour.images.map((image, index) => (
                                                 <img
                                                     key={index}
-                                                    src={image}
+                                                    src={image.file}
                                                     alt={`Colour ${colour.colour} Image ${index + 1}`}
                                                     className="object-cover rounded-md shadow-md"
                                                 />
@@ -160,12 +198,6 @@ const ProductDetails = () => {
                                                                         className="text-green-500"
                                                                     />
                                                                 </button>
-                                                                <button onClick={() => handleDeleteSize(size._id)}>
-                                                                    <FontAwesomeIcon
-                                                                        icon={faTrash}
-                                                                        className="text-red-500"
-                                                                    />
-                                                                </button>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -198,13 +230,14 @@ const ProductDetails = () => {
                 <div className="text-center text-gray-500">No product information found.</div>
             )}
 
-            <ProductColourModal
-                isOpen={isColourModalOpen}
-                onClose={handleColourModalClose}
-                onSave={handleSaveColour}
-                initialData={currentColour}
-                productId={productId}
-            />
+            {isColourModalOpen && (
+                <ProductColourModal
+                    onClose={handleColourModalClose}
+                    initialData={currentColour}
+                    productId={productId}
+                    onSave={handleProductColourSave}
+                />
+            )}
 
             {isSizeModalOpen && (
                 <ProductSizeModal
@@ -212,6 +245,16 @@ const ProductDetails = () => {
                     onClose={handleSizeModalClose}
                     productId={productId}
                     colourId={colourId}
+                    onSave={handleProductSizeSave}
+                />
+            )}
+
+            {isConfirmationOpen && (
+                <ConfirmationModal
+                    isOpen={isConfirmationOpen}
+                    onClose={closeConfirmationModal}
+                    onConfirm={deleteProduct}
+                    message="Are you sure you want to delete this product?"
                 />
             )}
         </div>
