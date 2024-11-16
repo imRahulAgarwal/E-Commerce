@@ -28,6 +28,7 @@ import customerSchema from "../schemas/customer.js";
 import Address from "../models/address.js";
 import Category from "../models/category.js";
 import categorySchema from "../schemas/categorySchema.js";
+import getAggregationStages from "../utils/getAggregationStages.js";
 const DOMAIN = process.env.DOMAIN;
 const FRONTEND_DOMAIN = process.env.FRONTEND_DOMAIN;
 const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD;
@@ -220,14 +221,15 @@ export const getCustomers = asyncHandler(async (req, res, next) => {
         .lean();
 
     const total = await User.countDocuments(searchQuery);
+    let pages = Math.ceil(total / limit);
 
     return res.status(200).json({
         success: true,
         data: {
             customers,
-            pages: Math.ceil(total / limit),
+            pages,
             total,
-            page,
+            page: page > pages ? 1 : page,
             limit,
         },
     });
@@ -290,32 +292,39 @@ export const createCustomer = asyncHandler(async (req, res, next) => {
 // @route   GET /api/panel/orders
 export const getOrders = asyncHandler(async (req, res, next) => {
     let { page = 1, limit = 10, sort = "createdAt", order = "asc", search } = req.query;
+    page = parseInt(page, 10) || 1;
+    limit = parseInt(limit, 10) || 10;
+
+    order = order.toLowerCase() === "desc" ? "desc" : "asc";
+
     let searchQuery = {};
 
-    if (search) {
-        // Here we have used exact case matching to get the same order details
-        searchQuery.razorpay_order_id = search;
+    if (search.trim()) {
+        searchQuery.$or = [{ razorpay_order_id: search }, { razorpay_payment_id: search }];
     }
 
-    if (order !== "asc" && order !== "desc") {
-        order = "asc";
+    const allowedSortFields = ["createdAt", "totalAmount"];
+    if (!allowedSortFields.includes(sort)) {
+        sort = "createdAt";
     }
 
-    let orders = await Order.find(searchQuery, { totalAmount: 1, paymentStatus: 1, createdAt: 1, isBuyNow: 1 })
+    let orders = await Order.find(searchQuery, { totalAmount: 1, paymentStatus: 1, createdAt: 1, razorpay_order_id: 1 })
         .sort({ [sort]: order })
         .skip((page - 1) * limit)
         .limit(limit)
         .lean();
 
     let total = await Order.countDocuments(searchQuery);
+    let pages = Math.ceil(total / limit);
 
     return res.status(200).json({
         success: true,
         data: {
             orders,
-            pages: Math.ceil(total / limit),
+            pages,
             total,
-            page: parseInt(page),
+            page: page > pages ? 1 : page,
+            limit,
         },
     });
 });
@@ -483,13 +492,15 @@ export const getProducts = asyncHandler(async (req, res, next) => {
 
     const total = await Product.countDocuments(filter);
 
+    let pages = Math.ceil(total / limit);
+
     return res.status(200).json({
         success: true,
         data: {
             products,
-            pages: Math.ceil(total / limit),
+            pages,
             total,
-            page,
+            page: page > pages ? 1 : page,
             limit,
         },
     });
@@ -984,14 +995,15 @@ export const getAudits = asyncHandler(async (req, res, next) => {
         .lean();
 
     let total = await AuditLogs.countDocuments(searchQuery);
+    let pages = Math.ceil(total / limit);
 
     return res.status(200).json({
         success: true,
         data: {
             audits,
-            page,
+            pages,
             total,
-            pages: Math.ceil(total / limit),
+            page: page > pages ? 1 : page,
             limit,
         },
     });
@@ -1188,14 +1200,15 @@ export const getPanelUsers = asyncHandler(async (req, res, next) => {
         .lean();
 
     const total = await User.countDocuments(searchQuery);
+    let pages = Math.ceil(total / limit);
 
     return res.status(200).json({
         success: true,
         data: {
             panelUsers,
-            page,
+            pages,
             total,
-            pages: Math.ceil(total / limit),
+            page: page > pages ? 1 : page,
             limit,
         },
     });
@@ -1333,6 +1346,52 @@ export const deletePanelUser = asyncHandler(async (req, res, next) => {
     await noteAudits(req.user, "DELETE", "Panel Users", { documentId: panelUserExists.id });
 
     return res.status(200).json({ success: true, message: "Panel user details removed" });
+});
+
+export const getOrderReports = asyncHandler(async (req, res, next) => {
+    const { type = "month" } = req.query;
+    const { matchStage, groupStage } = getAggregationStages(type, "paymentDateTime");
+    matchStage.$match.paymentStatus = "Completed";
+
+    const reports = await Order.aggregate([
+        matchStage,
+        { $group: { _id: groupStage._id, data: { $sum: 1 } } },
+        { $sort: { "_id.sortId": 1 } },
+        { $project: { id: "$_id.label", data: "$data", _id: 0 } },
+    ]);
+
+    return res.status(200).json({ success: true, data: { reports } });
+});
+
+export const getRevenueReports = asyncHandler(async (req, res, next) => {
+    const { type = "month" } = req.query;
+    const { matchStage, groupStage } = getAggregationStages(type, "paymentDateTime");
+    matchStage.$match.paymentStatus = "Completed";
+
+    const reports = await Order.aggregate([
+        matchStage,
+        { $group: { _id: groupStage._id, totalRevenue: { $sum: "$totalAmount" } } },
+        { $sort: { "_id.sortId": 1 } },
+        { $project: { id: "$_id.label", data: "$totalRevenue", _id: 0 } },
+    ]);
+
+    return res.status(200).json({ success: true, data: { reports } });
+});
+
+export const getCustomerReports = asyncHandler(async (req, res, next) => {
+    const { type = "month" } = req.query;
+    const { matchStage, groupStage } = getAggregationStages(type, "createdAt");
+    matchStage.$match.isDeleted = false;
+    matchStage.$match.isCustomer = true;
+
+    const reports = await User.aggregate([
+        matchStage,
+        { $group: { _id: groupStage._id, totalCustomers: { $sum: 1 } } },
+        { $sort: { "_id.sortId": 1 } },
+        { $project: { id: "$_id.label", data: "$totalCustomers", _id: 0 } },
+    ]);
+
+    return res.status(200).json({ success: true, data: { reports } });
 });
 
 // Logout

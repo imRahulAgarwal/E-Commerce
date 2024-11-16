@@ -136,7 +136,18 @@ class AdminPanel {
         return false;
     }
 
-    async getOrders(page, limit, search, sort, order) {}
+    async getOrders({ page, limit, search, sort, order }) {
+        let url = `${apiUrl}/panel/orders?page=${page}&limit=${limit}&search=${search}&sort=${sort}&order=${order}`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
     async getOrder(orderId) {}
 
     async getTransactions() {}
@@ -582,6 +593,57 @@ class AdminPanel {
             method: "PUT",
             body: JSON.stringify(data),
             headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        });
+
+        const jsonData = await response.json();
+
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async orderReports(type) {
+        const url = `${apiUrl}/panel/reports/orders?type=${type}`;
+        const response = await fetch(url, {
+            headers: { Authorization: `Bearer ${getToken()}` },
+        });
+
+        const jsonData = await response.json();
+
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async revenueReports(type) {
+        const url = `${apiUrl}/panel/reports/revenue?type=${type}`;
+        const response = await fetch(url, {
+            headers: { Authorization: `Bearer ${getToken()}` },
+        });
+
+        const jsonData = await response.json();
+
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async customerReports(type) {
+        const url = `${apiUrl}/panel/reports/customers?type=${type}`;
+        const response = await fetch(url, {
+            headers: { Authorization: `Bearer ${getToken()}` },
         });
 
         const jsonData = await response.json();

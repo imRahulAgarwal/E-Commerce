@@ -74,6 +74,10 @@ panelRouter.post("/panel-users", panelController.createPanelUser);
 panelRouter.put("/panel-users/:panelUserId", panelController.updatePanelUser);
 panelRouter.delete("/panel-users/:panelUserId", panelController.deletePanelUser);
 
+panelRouter.get("/reports/orders", panelController.getOrderReports);
+panelRouter.get("/reports/revenue", panelController.getRevenueReports);
+panelRouter.get("/reports/customers", panelController.getCustomerReports);
+
 // Logout
 panelRouter.post("/logout", panelController.logout);
 
