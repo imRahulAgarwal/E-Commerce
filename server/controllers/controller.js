@@ -21,8 +21,10 @@ import returnObjectId from "../utils/return-object-id.js";
 import ContactUs from "../models/contact-us.js";
 import Razorpay from "razorpay";
 import { createHmac } from "crypto";
+import profileSchema from "../schemas/profile.js";
 
 const DOMAIN = process.env.DOMAIN;
+const FRONTEND_USER_DOMAIN = process.env.FRONTEND_USER_DOMAIN;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 
@@ -67,7 +69,7 @@ export const register = asyncHandler(async (req, res, next) => {
     await Cart.create({ userId: newUser.id, products: [] });
 
     // Send response
-    res.status(201).json({ success: true, data: "User registration successful" });
+    res.status(201).json({ success: true, message: "User registration successful" });
 });
 
 export const login = asyncHandler(async (req, res, next) => {
@@ -79,7 +81,7 @@ export const login = asyncHandler(async (req, res, next) => {
     const { email, password } = req.body;
 
     // Check if user exists
-    const user = await User.findOne({ email, isCustomer: true });
+    const user = await User.findOne({ email, isCustomer: true, isDeleted: false });
     if (!user) {
         return next(new ErrorHandler("Invalid credentials", 401));
     }
@@ -98,18 +100,22 @@ export const login = asyncHandler(async (req, res, next) => {
     // Send response
     res.status(200).json({
         success: true,
-        token,
+        message: "User logged in",
         data: {
-            id: user._id,
-            fName: user.fName,
-            lName: user.lName,
-            email: user.email,
+            token,
+            user: {
+                id: user._id,
+                fName: user.fName,
+                lName: user.lName,
+                email: user.email,
+                number: user.number,
+            },
         },
     });
 });
 
 export const forgotPassword = asyncHandler(async (req, res, next) => {
-    const validation = validateEmail.validate(req.body);
+    const validation = validateEmail.validate(req.body.email);
     if (validation.error) {
         return next(new ErrorHandler(validation.error.details[0].message, 400));
     }
@@ -128,7 +134,7 @@ export const forgotPassword = asyncHandler(async (req, res, next) => {
     await user.save();
 
     // Send reset email
-    const resetUrl = `${DOMAIN}${resetToken}`;
+    const resetUrl = `${FRONTEND_USER_DOMAIN}${resetToken}`;
 
     await sendEmail({
         to: user.email,
@@ -136,7 +142,7 @@ export const forgotPassword = asyncHandler(async (req, res, next) => {
         text: `Click the link to reset your password: ${resetUrl}`,
     });
 
-    res.status(200).json({ success: true, data: "Password reset email sent" });
+    res.status(200).json({ success: true, message: "Rest Password email sent" });
 });
 
 export const resetPassword = asyncHandler(async (req, res, next) => {
@@ -164,16 +170,16 @@ export const resetPassword = asyncHandler(async (req, res, next) => {
     user.resetPasswordToken = undefined; // Clear token from user document
     await user.save();
 
-    res.status(200).json({ success: true, data: "Password reset successful" });
+    res.status(200).json({ success: true, message: "Password reset successful" });
 });
 
 export const profile = asyncHandler(async (req, res, next) => {
     let { fName, lName, email, number } = req.user;
-    return res.status(200).json({ success: true, profile: { fName, lName, email, number } });
+    return res.status(200).json({ success: true, data: { user: { fName, lName, email, number } } });
 });
 
 export const updateProfile = asyncHandler(async (req, res, next) => {
-    let validation = profileUpdateSchema.validate(req.body);
+    let validation = profileSchema.validate(req.body);
     if (validation.error) {
         return next(new ErrorHandler(validation.error.details[0].message, 400));
     }
@@ -193,7 +199,7 @@ export const updateProfile = asyncHandler(async (req, res, next) => {
     return res.status(200).json({
         success: true,
         message: "Profile updated successfully",
-        data: { fName, lName, number, email },
+        data: { user: { fName, lName, number, email } },
     });
 });
 
@@ -213,18 +219,18 @@ export const changePassword = asyncHandler(async (req, res, next) => {
     user.password = hashPassword(newPassword);
     await user.save();
 
-    res.status(200).json({ success: true, data: "Password updated successfully" });
+    res.status(200).json({ success: true, message: "Password updated successfully" });
 });
 
 // User Addresses
 export const readAddresses = asyncHandler(async (req, res, next) => {
     const addresses = await Address.find({ user: req.user._id, isDeleted: false });
-    res.status(200).json({ success: true, data: addresses });
+    res.status(200).json({ success: true, data: { addresses } });
 });
 
 export const readAddress = asyncHandler(async (req, res, next) => {
     const { addressId } = req.params;
-    if (!validateObjectId(addressId)) {
+    if (!addressId || !validateObjectId(addressId)) {
         return next(new ErrorHandler("Invalid Address ID format", 400));
     }
 
@@ -234,7 +240,7 @@ export const readAddress = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Address not found", 404));
     }
 
-    res.status(200).json({ success: true, data: address });
+    res.status(200).json({ success: true, data: { address } });
 });
 
 export const createAddress = asyncHandler(async (req, res, next) => {
@@ -255,12 +261,16 @@ export const createAddress = asyncHandler(async (req, res, next) => {
         userId: req.user._id,
     });
 
-    res.status(201).json({ success: true, data: "Address added" });
+    res.status(201).json({
+        success: true,
+        message: "Address added successfully",
+        data: { address: addressLine1, addressLine2, city, state, pincode, country },
+    });
 });
 
 export const updateAddress = asyncHandler(async (req, res, next) => {
     const { addressId } = req.params;
-    if (!validateObjectId(addressId)) {
+    if (!addressId || !validateObjectId(addressId)) {
         return next(new ErrorHandler("Invalid Address ID format", 400));
     }
 
@@ -280,12 +290,16 @@ export const updateAddress = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Address not found or deleted", 404));
     }
 
-    res.status(200).json({ success: true, data: "Address updated" });
+    res.status(200).json({
+        success: true,
+        message: "Address updated successfully",
+        data: { address: { addressLine1, addressLine2, city, state, country, pincode } },
+    });
 });
 
 export const deleteAddress = asyncHandler(async (req, res, next) => {
     const { addressId } = req.params;
-    if (!validateObjectId(addressId)) {
+    if (!addressId || !validateObjectId(addressId)) {
         return next(new ErrorHandler("Invalid Address ID format", 400));
     }
 
@@ -298,7 +312,7 @@ export const deleteAddress = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Address not found", 404));
     }
 
-    res.status(200).json({ success: true, data: "Address deleted successfully" });
+    res.status(200).json({ success: true, message: "Address deleted successfully" });
 });
 
 // Cart

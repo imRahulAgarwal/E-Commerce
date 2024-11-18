@@ -1,11 +1,11 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
-import Header from "./components/admin/Header/Header";
-import Sidebar from "./components/admin/Sidebar/Sidebar";
-import useResponsiveSidebar from "./hooks/useResponsiveSidebar";
+import Header from "../components/admin/Header/Header";
+import Sidebar from "../components/admin/Sidebar/Sidebar";
+import useResponsiveSidebar from "../hooks/useResponsiveSidebar";
 import { useSelector } from "react-redux";
 
-const App = () => {
+const AdminLayout = () => {
     const { status } = useSelector((state) => state.adminAuth);
     const [isSidebarOpen, setIsSidebarOpen] = useResponsiveSidebar();
 
@@ -30,4 +30,4 @@ const App = () => {
     );
 };
 
-export default App;
+export default AdminLayout;

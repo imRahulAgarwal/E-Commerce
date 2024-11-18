@@ -29,7 +29,7 @@ router.post("/contact-us", authLimiter, controller.contactUs);
 router.post("/register", authLimiter, isNotLoggedIn, controller.register);
 router.post("/login", authLimiter, isNotLoggedIn, controller.login);
 router.post("/forgot-password", authLimiter, isNotLoggedIn, controller.forgotPassword);
-router.post("/reset-password", authLimiter, isNotLoggedIn, controller.resetPassword);
+router.post("/reset-password/:token", authLimiter, isNotLoggedIn, controller.resetPassword);
 
 router.use(limiter);
 router.use(isLoggedIn);
