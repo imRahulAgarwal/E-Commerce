@@ -14,12 +14,15 @@ import UserProfile from "../pages/user/UserProfile";
 import UserOrders from "../pages/user/UserOrders";
 import UserOrder from "../pages/user/UserOrder";
 import userService from "../api/user/api";
-import { userLogin } from "../store/auth/userAuthSlice";
+import { setAddresses, setUserCart, setUserWishlist, userLogin } from "../store/auth/userAuthSlice";
 import LoadingPage from "../components/Loading/Loading";
+import Shop from "../pages/user/Shop";
+import Product from "../pages/user/Product";
+import { setNewProducts } from "../store/products/productsSlice";
 
 const UserRouter = () => {
     const [loading, setLoading] = useState(true);
-    const loginStatus = useSelector((state) => state.adminAuth.status);
+    const loginStatus = useSelector((state) => state.userAuth.status);
     const dispatch = useDispatch();
 
     useEffect(() => {
@@ -28,9 +31,31 @@ const UserRouter = () => {
             .then(({ data }) => {
                 if (data) {
                     dispatch(userLogin(data.user));
+                    userService.readAddresses().then(({ data }) => {
+                        if (data) {
+                            dispatch(setAddresses(data.addresses));
+                        }
+                    });
+                    userService.readCartItems().then(({ data }) => {
+                        if (data) {
+                            dispatch(setUserCart(data));
+                        }
+                    });
+
+                    userService.readWishlist().then(({ data }) => {
+                        if (data) {
+                            dispatch(setUserWishlist(data));
+                        }
+                    });
                 }
             })
             .finally(() => setLoading(false));
+
+        userService.newProducts().then(({ data }) => {
+            if (data) {
+                dispatch(setNewProducts(data.products));
+            }
+        });
     }, []);
 
     if (loading) {
@@ -41,6 +66,8 @@ const UserRouter = () => {
         createRoutesFromElements(
             <Route path="/" element={<UserLayout />}>
                 <Route index element={<Home />} />
+                <Route path="shop" element={<Shop />} />
+                <Route path="product/:productId" element={<Product />} />
                 <Route path="contact-us" element={<ContactUs />} />
                 <Route path="privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="terms-and-conditions" element={<TermsAndConditions />} />

@@ -1,11 +1,11 @@
 import React from "react";
-import { useSelector } from "react-redux";
 import Header from "../components/user/Header/Header";
 import Footer from "../components/user/Footer/Footer";
 import { Outlet } from "react-router-dom";
+import useScrollToTop from "../hooks/useScrollToTop";
 
 const UserLayout = () => {
-    const { status } = useSelector((state) => state.adminAuth);
+    useScrollToTop();
 
     return (
         <div className="flex flex-col relative">

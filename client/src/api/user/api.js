@@ -130,6 +130,27 @@ class User {
         return false;
     }
 
+    async updateProfile({ fName, lName, email, number }) {
+        const url = `${apiUrl}/profile`;
+        const body = JSON.stringify({ fName, lName, email, number });
+        const token = getToken();
+
+        const response = await fetch(url, {
+            method: "PATCH",
+            body,
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        });
+
+        const jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return true;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
     async getOrders({ page, limit, search, sort, order }) {
         let url = `${apiUrl}/panel/orders?page=${page}&limit=${limit}&search=${search}&sort=${sort}&order=${order}`;
 
@@ -147,32 +168,6 @@ class User {
 
     async createOrder() {}
 
-    async getCategories() {
-        let url = `${apiUrl}/panel/categories`;
-
-        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
-        let jsonData = await response.json();
-        if (jsonData.success) {
-            return jsonData;
-        }
-
-        toast.error(jsonData.error, toastCss);
-        return false;
-    }
-
-    async getCategory(categoryId) {
-        let url = `${apiUrl}/panel/categories/${categoryId}`;
-
-        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
-        let jsonData = await response.json();
-        if (jsonData.success) {
-            return jsonData;
-        }
-
-        toast.error(jsonData.error, toastCss);
-        return false;
-    }
-
     async logout() {
         const url = `${apiUrl}/logout`;
         const token = getToken();
@@ -188,7 +183,7 @@ class User {
     }
 
     async getProducts({ page, limit, search, sort, order }) {
-        let url = `${apiUrl}/panel/products?page=${page}&limit=${limit}&search=${search}&sort=${sort}&order=${order}`;
+        let url = `${apiUrl}/products?page=${page}&limit=${limit}&search=${search}&sort=${sort}&order=${order}`;
 
         let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
         let jsonData = await response.json();
@@ -201,12 +196,170 @@ class User {
     }
 
     async getProduct(productId) {
-        let url = `${apiUrl}/panel/products/${productId}`;
+        let url = `${apiUrl}/products/${productId}`;
 
         let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
         let jsonData = await response.json();
         if (jsonData.success) {
             return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async newProducts() {
+        let url = `${apiUrl}/products/new`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async readCartItems() {
+        let url = `${apiUrl}/cart`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async updateCartItems({ quantity, productSizeId }) {
+        if (!productSizeId) {
+            toast.error("Select a size to proceed", toastCss);
+            return false;
+        }
+        let url = `${apiUrl}/cart`;
+
+        let response = await fetch(url, {
+            method: "POST",
+            body: JSON.stringify({ productSizeId, quantity }),
+            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        });
+
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async readWishlist() {
+        let url = `${apiUrl}/wishlist`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async updateWishlist({ productSizeId }) {
+        if (!productSizeId) {
+            toast.error("Select a size to proceed", toastCss);
+            return false;
+        }
+
+        let url = `${apiUrl}/wishlist`;
+
+        let response = await fetch(url, {
+            method: "POST",
+            body: JSON.stringify({ productSizeId }),
+            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        });
+
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async readAddresses() {
+        let url = `${apiUrl}/address`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async addAddress({ addressLine1, addressLine2, city, state, country, pincode }) {
+        let url = `${apiUrl}/address`;
+        let body = JSON.stringify({ addressLine1, addressLine2, city, state, country, pincode });
+        let response = await fetch(url, {
+            method: "POST",
+            body,
+            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        });
+
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async deleteAddress(addressId) {
+        let url = `${apiUrl}/address/${addressId}`;
+        let response = await fetch(url, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        });
+
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return true;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async submitContactForm({ name, number, email, message }) {
+        let url = `${apiUrl}/contact-us`;
+        let body = JSON.stringify({ name, number, email, message });
+
+        let response = await fetch(url, {
+            method: "POST",
+            body,
+            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        });
+
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return true;
         }
 
         toast.error(jsonData.error, toastCss);

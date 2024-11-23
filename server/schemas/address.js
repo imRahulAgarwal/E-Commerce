@@ -1,5 +1,3 @@
-// schemas/address.js
-
 import Joi from "joi";
 
 const addressSchema = Joi.object({
@@ -8,7 +6,7 @@ const addressSchema = Joi.object({
     city: Joi.string().required().trim().label("City"),
     state: Joi.string().required().trim().label("State"),
     country: Joi.string().required().trim().label("Country"),
-    pincode: Joi.number().required().min(6).max(6).label("Pincode"),
+    pincode: Joi.number().required().label("Pincode"),
 }).options({ stripUnknown: true });
 
 export default addressSchema;

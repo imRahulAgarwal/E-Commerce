@@ -22,6 +22,9 @@ import ContactUs from "../models/contact-us.js";
 import Razorpay from "razorpay";
 import { createHmac } from "crypto";
 import profileSchema from "../schemas/profile.js";
+import Product from "../models/product.js";
+import moment from "moment-timezone";
+import contactUsSchema from "../schemas/contactUs.js";
 
 const DOMAIN = process.env.DOMAIN;
 const FRONTEND_USER_DOMAIN = process.env.FRONTEND_USER_DOMAIN;
@@ -224,7 +227,7 @@ export const changePassword = asyncHandler(async (req, res, next) => {
 
 // User Addresses
 export const readAddresses = asyncHandler(async (req, res, next) => {
-    const addresses = await Address.find({ user: req.user._id, isDeleted: false });
+    const addresses = await Address.find({ userId: req.user._id, isDeleted: false });
     res.status(200).json({ success: true, data: { addresses } });
 });
 
@@ -251,7 +254,7 @@ export const createAddress = asyncHandler(async (req, res, next) => {
 
     const { addressLine1, addressLine2, city, state, country, pincode } = req.body;
 
-    await Address.create({
+    const newAddress = await Address.create({
         addressLine1,
         addressLine2,
         city,
@@ -264,7 +267,7 @@ export const createAddress = asyncHandler(async (req, res, next) => {
     res.status(201).json({
         success: true,
         message: "Address added successfully",
-        data: { address: addressLine1, addressLine2, city, state, pincode, country },
+        data: { address: { addressLine1, addressLine2, city, state, pincode, country, _id: newAddress._id } },
     });
 });
 
@@ -356,16 +359,35 @@ export const readCartItems = asyncHandler(async (req, res, next) => {
             },
         },
         { $unwind: "$product" },
-        { $match: { "product.isDeleted": false } },
+        { $match: { "product.isDeleted": false, "product.isActive": true } },
 
         // Project fields as per requirements
         {
             $project: {
-                productSizeId: "$productInfo._id",
-                productColourImages: "$productColour.images",
-                productColour: "$productColour.colour",
-                productName: "$product.name",
-                cartQuantity: "$products.quantity",
+                name: "$product.name",
+                quantity: "$products.quantity",
+                price: "$product.price",
+                image: {
+                    $arrayElemAt: [
+                        {
+                            $map: {
+                                input: {
+                                    $filter: {
+                                        input: "$productColour.images",
+                                        as: "image",
+                                        cond: { $eq: ["$$image.isDefault", true] },
+                                    },
+                                },
+                                as: "image",
+                                in: { $concat: [DOMAIN, "$$image.url"] },
+                            },
+                        },
+                        0,
+                    ],
+                },
+                id: "$productInfo._id",
+                colour: "$productColour.colour",
+                size: "$productInfo.size",
                 isAvailable: {
                     $cond: {
                         if: {
@@ -375,25 +397,26 @@ export const readCartItems = asyncHandler(async (req, res, next) => {
                         else: false,
                     },
                 },
-                size: "$productInfo.size",
             },
         },
     ]);
-
-    console.log(cart);
 
     return res.status(200).json({ success: true, data: cart });
 });
 
 export const updateCartItems = asyncHandler(async (req, res, next) => {
-    let { productSizeId, quantity } = req.body;
-    if (!validateObjectId(productSizeId)) {
+    let { productSizeId, quantity = 1 } = req.body;
+    if (!productSizeId || !validateObjectId(productSizeId)) {
         return next(new ErrorHandler("Invalid Product Size ID format"));
     }
 
     let userCart = await Cart.findOne({ userId: req.user._id });
-    let cartQuantity = Number(userCart.products.find((product) => product.productSizeId === productSizeId)?.quantity);
-    cartQuantity = cartQuantity ? cartQuantity : 0;
+
+    // Quantity to increase provided by a user.
+    quantity = parseInt(quantity, 10) || 1;
+
+    let productExistsInCart = userCart.products.find((product) => product.productSizeId === productSizeId);
+    let cartQuantity = productExistsInCart ? parseInt(productExistsInCart.quantity, 10) : 0;
 
     let productExists = await ProductSize.aggregate([
         { $match: { isActive: true, _id: returnObjectId(productSizeId), quantity: { $gte: quantity + cartQuantity } } },
@@ -416,21 +439,24 @@ export const updateCartItems = asyncHandler(async (req, res, next) => {
             },
         },
         { $unwind: "$productInfo" },
-        { $match: { "productInfo.isDeleted": false } },
+        { $match: { "productInfo.isDeleted": false, "productInfo.isActive": true } },
     ]);
 
     if (!productExists.length) {
-        return next(new ErrorHandler("Product details does not exists", 404));
+        return next(new ErrorHandler("Product details do not exist", 404));
     }
 
     let updateResult = await Cart.updateOne(
-        { userId: req.user._id, products: { $elemMatch: { productSizeId } } },
+        { userId: req.user._id, "products.productSizeId": productSizeId },
         { $inc: { "products.$.quantity": quantity } }
     );
 
     if (!updateResult.modifiedCount) {
         await Cart.updateOne({ userId: req.user._id }, { $push: { products: { productSizeId, quantity } } });
     }
+
+    // Remove products with zero quantity
+    await Cart.updateOne({ userId: req.user._id }, { $pull: { products: { quantity: { $lte: 0 } } } });
 
     return res.status(200).json({ success: true, message: "Cart updated successfully" });
 });
@@ -441,64 +467,143 @@ export const readWishlist = asyncHandler(async (req, res, next) => {
         { $match: { userId: req.user._id } },
         {
             $lookup: {
-                from: "product_colours",
+                from: "product_sizes",
                 foreignField: "_id",
                 localField: "products",
-                as: "productsInfo",
+                as: "productSize",
             },
         },
-        { $unwind: "$productsInfo" },
-        { $match: { "productsInfo.isDeleted": false } },
+        { $unwind: "$productSize" },
+        {
+            $lookup: {
+                from: "product_colours",
+                foreignField: "_id",
+                localField: "productSize.productColourId",
+                as: "productColour",
+            },
+        },
+        { $unwind: "$productColour" },
         {
             $lookup: {
                 from: "products",
                 foreignField: "_id",
-                localField: "productsInfo.productId",
+                localField: "productColour.productId",
                 as: "product",
             },
         },
-        { $match: { "product.isDeleted": false } },
+        { $unwind: "$product" },
+
+        // Add a filter to exclude deleted products
+        {
+            $match: {
+                "product.isDeleted": false,
+            },
+        },
+
+        {
+            $project: {
+                name: "$product.name",
+                colour: "$productColour.colour",
+                size: "$productSize.size",
+                image: {
+                    $arrayElemAt: [
+                        {
+                            $map: {
+                                input: {
+                                    $filter: {
+                                        input: "$productColour.images",
+                                        as: "image",
+                                        cond: { $eq: ["$$image.isDefault", true] },
+                                    },
+                                },
+                                as: "image",
+                                in: { $concat: [DOMAIN, "$$image.url"] },
+                            },
+                        },
+                        0,
+                    ],
+                },
+                isAvailable: {
+                    $cond: {
+                        if: {
+                            $and: [
+                                { $gt: [{ $subtract: ["$productSize.quantity", "$productSize.sold"] }, 0] }, // Available quantity > 0
+                                { $eq: ["$productSize.isActive", true] }, // Product size is active
+                                { $eq: ["$productColour.isDeleted", false] }, // Product color is not deleted
+                                { $eq: ["$product.isActive", true] }, // Product is active
+                            ],
+                        },
+                        then: true,
+                        else: false,
+                    },
+                },
+                id: "$productSize._id",
+                _id: 0,
+            },
+        },
     ]);
 
     return res.status(200).json({ success: true, data: wishlist });
 });
 
 export const updateWishlist = asyncHandler(async (req, res, next) => {
-    // Update wishlist logic here
-    let { productColourId } = req.body;
-    if (!validateObjectId(productColourId)) {
-        return next(new ErrorHandler("Invalid Product Colour ID format", 400));
+    const { productSizeId } = req.body;
+
+    if (!productSizeId || !validateObjectId(productSizeId)) {
+        return next(new ErrorHandler("Invalid Product Size ID format"));
     }
 
-    let productExists = await ProductColour.aggregate([
-        { $match: { _id: returnObjectId(productColourId), isDeleted: false } },
+    // Validate product existence and its status
+    const productExists = await ProductSize.aggregate([
+        { $match: { _id: returnObjectId(productSizeId), isActive: true } },
+        {
+            $lookup: {
+                from: "product_colours",
+                localField: "productColourId",
+                foreignField: "_id",
+                as: "productColour",
+            },
+        },
+        { $unwind: "$productColour" },
+        { $match: { "productColour.isDeleted": false } },
         {
             $lookup: {
                 from: "products",
+                localField: "productColour.productId",
                 foreignField: "_id",
-                localField: "productId",
                 as: "product",
             },
         },
         { $unwind: "$product" },
-        { $match: { "product.isDeleted": false } },
+        { $match: { "product.isDeleted": false, "product.isActive": true } },
     ]);
-    if (!productExists) {
-        return next(new ErrorHandler("Product details not found", 404));
+
+    if (!productExists.length) {
+        return next(new ErrorHandler("Product details do not exist or are inactive", 404));
     }
 
-    let wishlistUpdate = await UserWishlist.findOneAndUpdate(
-        { userId: req.user._id }, // Find by userId
-        { $addToSet: { products: productColourId } }, // Add to products array if not already present
-        { upsert: true, new: true } // Create new if not exists, and return the updated document
-    );
+    // Find or create the user's wishlist
+    let wishlist = await UserWishlist.findOne({ userId: req.user._id });
 
-    // Check if update was successful
-    if (!wishlistUpdate) {
-        return next(new ErrorHandler("Failed to update or create wishlist", 500));
+    if (!wishlist) {
+        wishlist = await UserWishlist.create({ userId: req.user._id, products: [] });
     }
 
-    return res.status(200).json({ success: true, message: "Wishlist updated" });
+    // Check if the product is already in the wishlist
+    const productExistsInWishlist = wishlist.products.some((item) => item.toString() === productSizeId);
+
+    if (productExistsInWishlist) {
+        // Remove the product if it already exists in the wishlist
+        await UserWishlist.updateOne({ userId: req.user._id }, { $pull: { products: productSizeId } });
+        return res.status(200).json({ success: true, message: "Product removed from wishlist" });
+    } else {
+        // Add the product to the wishlist if it doesn't exist
+        await UserWishlist.updateOne(
+            { userId: req.user._id },
+            { $addToSet: { products: returnObjectId(productSizeId) } }
+        );
+        return res.status(200).json({ success: true, message: "Product added to wishlist" });
+    }
 });
 
 // Orders
@@ -765,98 +870,195 @@ export const logout = asyncHandler(async (req, res, next) => {
 
 // Products
 export const readProducts = asyncHandler(async (req, res, next) => {
-    const { page = 1, limit = 10, sort = "colour", order = "asc", productName, colour } = req.query;
+    let { page = 1, limit = 10, sort = "price", order = "asc", search = "Red" } = req.query;
 
-    const pageNumber = parseInt(page, 10) || 1;
-    const limitNumber = parseInt(limit, 10) || 10;
-    const skip = (pageNumber - 1) * limitNumber;
+    page = parseInt(page, 10) || 1;
+    limit = parseInt(limit, 10) || 10;
+    order = order.toLowerCase() === "asc" ? 1 : -1;
+    search = search.trim();
+    sort = { [sort]: order };
+    let searchQuery = {};
 
-    const matchColour = { isDeleted: false };
-
-    if (colour) matchColour.colour = { $regex: colour, $options: "i" };
-
-    // Sort option uses `productInfo.price`
-    let sortOptions = {};
-    switch (sort) {
-        case "colour":
-            sortOptions = { [sort]: order === "asc" ? 1 : -1 };
-            break;
-        case "name":
-            sortOptions = { [`productInfo.${sort}`]: order === "asc" ? 1 : -1 };
-            break;
-        case "price":
-            sortOptions = { [`productInfo.${sort}`]: order === "asc" ? 1 : -1 };
-            break;
-        default:
-            sortOptions = { [sort]: order === "asc" ? 1 : -1 };
-            break;
+    if (search) {
+        searchQuery.$or = [
+            { name: { $regex: search, $options: "i" } },
+            { "category.name": { $regex: search, $options: "i" } },
+            { "colors.colour": { $regex: search, $options: "i" } },
+        ];
     }
 
-    const productColours = await ProductColour.aggregate([
-        { $match: matchColour },
-
+    const products = await Product.aggregate([
+        { $match: { isActive: true, isDeleted: false } },
+        { $lookup: { from: "categories", foreignField: "_id", localField: "category", as: "category" } },
+        { $unwind: "$category" },
         {
             $lookup: {
-                from: "products",
-                localField: "productId",
-                foreignField: "_id",
-                as: "productInfo",
+                from: "product_colours",
+                localField: "_id",
+                foreignField: "productId",
+                as: "colors",
+                pipeline: [{ $match: { isDeleted: false } }],
             },
         },
-
-        { $unwind: "$productInfo" },
-
-        {
-            $match: {
-                "productInfo.isDeleted": false,
-                ...(productName && { "productInfo.name": { $regex: productName, $options: "i" } }),
-            },
-        },
-
-        { $sort: sortOptions }, // Sort based on productInfo.price or any specified field
-
-        { $skip: skip },
-        { $limit: limitNumber },
-
+        { $unwind: "$colors" },
+        { $match: searchQuery },
+        { $sort: sort },
+        { $skip: (page - 1) * limit },
+        { $limit: limit },
         {
             $project: {
-                _id: 1,
-                colour: 1,
-                images: 1,
-                "productInfo.name": 1,
-                "productInfo.price": 1,
+                name: 1,
+                price: 1,
+                category: "$category.name",
+                color: "$colors.colour",
+                image: {
+                    $arrayElemAt: [
+                        {
+                            $filter: {
+                                input: "$colors.images",
+                                as: "image",
+                                cond: { $eq: ["$$image.isDefault", true] },
+                            },
+                        },
+                        0,
+                    ],
+                },
+                colorId: "$colors._id",
             },
         },
+        { $addFields: { image: "$image.url" } },
     ]);
+
+    products.map((product) => (product.image = DOMAIN + product.image));
+
+    const total = await Product.aggregate([
+        {
+            $match: { isActive: true, isDeleted: false },
+        },
+        { $lookup: { from: "categories", foreignField: "_id", localField: "category", as: "category" } },
+        { $unwind: "$category" },
+        {
+            $lookup: {
+                from: "product_colours",
+                localField: "_id",
+                foreignField: "productId",
+                as: "colors",
+                pipeline: [{ $match: { isDeleted: false } }],
+            },
+        },
+        { $unwind: "$colors" },
+        { $match: searchQuery },
+        { $count: "count" },
+    ]);
+
+    const totalProducts = total.length > 0 ? total[0].count : 0;
+    const pages = Math.ceil(totalProducts / limit);
 
     res.status(200).json({
         success: true,
-        page: pageNumber,
-        limit: limitNumber,
-        count: productColours.length,
-        data: productColours,
+        data: {
+            page: page > pages ? 1 : page,
+            limit,
+            products,
+            pages,
+            total: totalProducts,
+        },
     });
 });
 
 export const readProduct = asyncHandler(async (req, res, next) => {
     let { productId } = req.params;
-    if (!validateObjectId(productId)) {
+    if (!productId || !validateObjectId(productId)) {
         return next(new ErrorHandler("Invalid Product ID format", 400));
     }
 
-    const productColour = await ProductColour.findOne({ _id: productId, isDeleted: false })
-        .populate({ path: "productId", match: { isDeleted: false } })
-        .lean();
+    const product = await ProductColour.aggregate([
+        { $match: { _id: returnObjectId(productId), isDeleted: false } },
+        {
+            $lookup: {
+                from: "products",
+                foreignField: "_id",
+                localField: "productId",
+                as: "product",
+                pipeline: [{ $match: { isDeleted: false, isActive: true } }],
+            },
+        },
+        { $match: { product: { $ne: [] } } },
+        { $unwind: "$product" },
+        {
+            $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "product.category",
+                as: "category",
+            },
+        },
+        { $unwind: "$category" },
+        {
+            $lookup: {
+                from: "product_colours",
+                foreignField: "productId",
+                localField: "product._id",
+                as: "colours",
+            },
+        },
+        {
+            $lookup: {
+                from: "product_sizes",
+                foreignField: "productColourId",
+                localField: "_id",
+                as: "sizes",
+                pipeline: [{ $match: { isActive: true } }],
+            },
+        },
+        {
+            $project: {
+                name: "$product.name",
+                description: "$product.description",
+                productId: "$product._id",
+                category: "$category.name",
+                price: "$product.price",
+                sizes: {
+                    $map: {
+                        input: "$sizes",
+                        as: "size",
+                        in: {
+                            _id: "$$size._id",
+                            size: "$$size.size",
+                            description: "$$size.description",
+                            isAvailable: {
+                                $cond: {
+                                    if: { $gt: [{ $subtract: ["$$size.quantity", "$$size.sold"] }, 0] }, // quantity - sold > 0
+                                    then: true,
+                                    else: false,
+                                },
+                            },
+                        },
+                    },
+                },
+                colour: "$colour",
+                images: {
+                    $map: {
+                        input: "$images",
+                        as: "image",
+                        in: { $concat: [DOMAIN, "$$image.url"] },
+                    },
+                },
+                colours: {
+                    $map: {
+                        input: "$colours",
+                        as: "colour",
+                        in: {
+                            _id: "$$colour._id",
+                            colour: "$$colour.colour",
+                        },
+                    },
+                },
+            },
+        },
+    ]);
 
-    // Step 3: Check if the product colour or product doesn't exist or is deleted
-    if (!productColour || !productColour.productId) {
-        return next(new ErrorHandler("Product or Product Colour not found or has been deleted", 404));
-    }
-
-    let productSizes = await ProductSize.find({ productColourId: productColour._id }).lean();
-    productColour.sizes = productSizes;
-
-    return res.status(200).json({ success: true, data: productColour });
+    return res.status(200).json({ success: true, data: { product: product[0] } });
 });
 
 // Contact Us
@@ -879,4 +1081,78 @@ export const contactUs = asyncHandler(async (req, res, next) => {
     await ContactUs.create(createData);
 
     return res.status(200).json({ success: true, message: "We will contact you shortly" });
+});
+
+export const featuredProducts = asyncHandler(async (req, res, next) => {});
+
+export const newProducts = asyncHandler(async (req, res, next) => {
+    const recentThreshold = moment().subtract(7, "days").toDate();
+
+    const products = await ProductColour.aggregate([
+        {
+            $facet: {
+                recentProducts: [{ $match: { isDeleted: false, createdAt: { $gte: recentThreshold } } }, { $limit: 4 }],
+                allProducts: [
+                    { $match: { isDeleted: false, createdAt: { $lt: recentThreshold } } },
+                    { $sort: { createdAt: -1 } },
+                    { $limit: 4 },
+                ],
+            },
+        },
+        { $project: { products: { $concatArrays: ["$recentProducts", "$allProducts"] } } },
+        { $project: { products: { $slice: ["$products", 4] } } },
+        {
+            $lookup: {
+                from: "products",
+                foreignField: "_id",
+                localField: "products.productId",
+                as: "parentProduct",
+                pipeline: [
+                    { $match: { isDeleted: false, isActive: true } },
+                    { $lookup: { from: "categories", foreignField: "_id", localField: "category", as: "category" } },
+                    { $unwind: "$category" },
+                    {
+                        $project: {
+                            _id: 1,
+                            name: "$name",
+                            price: "$price",
+                            category: "$category.name",
+                        },
+                    },
+                ],
+            },
+        },
+        { $unwind: "$parentProduct" },
+        { $unwind: "$products" },
+        {
+            $project: {
+                image: {
+                    $arrayElemAt: [
+                        {
+                            $map: {
+                                input: {
+                                    $filter: {
+                                        input: "$products.images",
+                                        as: "image",
+                                        cond: { $eq: ["$$image.isDefault", true] },
+                                    },
+                                },
+                                as: "image",
+                                in: { $concat: [DOMAIN, "$$image.url"] },
+                            },
+                        },
+                        0,
+                    ],
+                },
+                colour: "$products.colour",
+                productColourId: "$products._id",
+                parentProductId: "$parentProduct._id",
+                name: "$parentProduct.name",
+                price: "$parentProduct.price",
+                category: "$parentProduct.category",
+            },
+        },
+    ]);
+
+    return res.status(200).json({ success: true, data: { products: products || [] } });
 });

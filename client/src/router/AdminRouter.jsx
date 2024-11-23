@@ -81,6 +81,7 @@ const AdminRouter = () => {
                         <Route index element={<Navigate to="/panel/login" />} />
                     </>
                 )}
+                <Route path="*" element={<Navigate to={loginStatus ? "/panel/dashboard" : "/panel/login"} />} />
             </Route>
         )
     );

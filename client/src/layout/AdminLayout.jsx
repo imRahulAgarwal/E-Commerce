@@ -4,10 +4,13 @@ import Header from "../components/admin/Header/Header";
 import Sidebar from "../components/admin/Sidebar/Sidebar";
 import useResponsiveSidebar from "../hooks/useResponsiveSidebar";
 import { useSelector } from "react-redux";
+import useScrollToTop from "../hooks/useScrollToTop";
 
 const AdminLayout = () => {
     const { status } = useSelector((state) => state.adminAuth);
     const [isSidebarOpen, setIsSidebarOpen] = useResponsiveSidebar();
+
+    useScrollToTop();
 
     return (
         <div className="min-h-screen flex overflow-x-hidden relative">
