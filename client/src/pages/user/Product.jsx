@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCartShopping, faShoppingBag, faHeart as faFilledHeart } from "@fortawesome/free-solid-svg-icons";
 import { faHeart } from "@fortawesome/free-regular-svg-icons";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import userService from "../../api/user/api";
 import { useDispatch, useSelector } from "react-redux";
 import { setUserCart, setUserWishlist } from "../../store/auth/userAuthSlice";
+import { toast } from "react-toastify";
+import toastCss from "../../config/toast";
 
 const Product = () => {
     const userWishlist = useSelector((state) => state.userAuth.wishlist);
@@ -16,6 +18,7 @@ const Product = () => {
     const [selectedImage, setSelectedImage] = useState(0);
 
     const dispatch = useDispatch();
+    const navigate = useNavigate();
 
     const handleAddToCart = () => {
         userService.updateCartItems({ productSizeId: selectedSizeId }).then((data) => {
@@ -38,6 +41,29 @@ const Product = () => {
                     }
                 });
             }
+        });
+    };
+
+    const handleBuyNow = () => {
+        if (!selectedSizeId) {
+            return toast.error("Select a size", toastCss);
+        }
+
+        navigate("/checkout", {
+            state: {
+                products: [
+                    {
+                        name: product.name,
+                        colour: product.colour,
+                        price: product.price,
+                        size: product.sizes.find((size) => size._id === selectedSizeId).size,
+                        quantity: 1,
+                        image: product.images[0],
+                        productSizeId: product.sizes.find((size) => size._id === selectedSizeId)._id,
+                    },
+                ],
+                isBuyNow: true,
+            },
         });
     };
 
@@ -170,7 +196,9 @@ const Product = () => {
                             <FontAwesomeIcon icon={faShoppingBag} />
                             Add to Cart
                         </button>
-                        <button className="flex-1 bg-green-600 text-white py-3 rounded-lg shadow-md hover:bg-green-700 flex items-center justify-center gap-2">
+                        <button
+                            onClick={handleBuyNow}
+                            className="flex-1 bg-green-600 text-white py-3 rounded-lg shadow-md hover:bg-green-700 flex items-center justify-center gap-2">
                             <FontAwesomeIcon icon={faCartShopping} />
                             Buy Now
                         </button>

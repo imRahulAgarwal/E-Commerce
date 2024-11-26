@@ -365,6 +365,44 @@ class User {
         toast.error(jsonData.error, toastCss);
         return false;
     }
+
+    async createOrder({ isBuyNow, addressId, productSizeId }) {
+        let url = `${apiUrl}/orders`;
+        let body = JSON.stringify({ isBuyNow, addressId, productSizeId });
+
+        let response = await fetch(url, {
+            method: "POST",
+            body,
+            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        });
+
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async verifyPayment(razorpayResponse) {
+        let url = `${apiUrl}/verify-payment`;
+
+        let response = await fetch(url, {
+            method: "POST",
+            body: JSON.stringify(razorpayResponse),
+            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        });
+
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            toast.success(jsonData.message, toastCss);
+            return true;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
 }
 
 const userService = new User();

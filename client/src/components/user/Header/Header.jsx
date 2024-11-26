@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faBars,
@@ -10,7 +10,7 @@ import {
     faTimesCircle,
     faHeart,
 } from "@fortawesome/free-solid-svg-icons";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { userLogout } from "../../../store/auth/userAuthSlice";
 import userService from "../../../api/user/api";
@@ -30,6 +30,8 @@ const Header = () => {
     const [isWishlistOpen, setIsWishlistOpen] = useState(false);
 
     const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const dropdownRef = useRef(null);
 
     const navLinks = [
         { title: "Home", to: "/", showNavLink: true },
@@ -56,6 +58,30 @@ const Header = () => {
         const query = e.target.value;
         setSearchQuery(query);
     };
+
+    const navigateToShop = () => {
+        navigate("/shop");
+    };
+
+    const handleProceedToCheckout = () => {
+        if (cart.length) {
+            navigate("/checkout", { state: { products: cart, isBuyNow: false } });
+            setIsCartOpen(false);
+            setIsOffCanvasOpen(false);
+        }
+    };
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsProfileDropdownOpen(false);
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickOutside);
+
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     return (
         <header className="sticky left-0 right-0 top-0 bg-white shadow-md px-4 z-[9999]">
@@ -139,7 +165,7 @@ const Header = () => {
                         {/* Cart and Profile Dropdown */}
                         <div className="flex items-center gap-6">
                             {/* User Icon */}
-                            <div className="relative">
+                            <div className="relative" ref={dropdownRef}>
                                 {userLoginStatus ? (
                                     <>
                                         <button
@@ -314,8 +340,18 @@ const Header = () => {
                         }></div>
                 )}
 
-                <Cart isCartOpen={isCartOpen} closeCart={() => setIsCartOpen(false)} />
-                <Wishlist isWishlistOpen={isWishlistOpen} closeWishlist={() => setIsWishlistOpen(false)} />
+                <Cart
+                    isCartOpen={isCartOpen}
+                    closeCart={() => setIsCartOpen(false)}
+                    navigateToShop={navigateToShop}
+                    handleProceedToCheckout={handleProceedToCheckout}
+                />
+
+                <Wishlist
+                    isWishlistOpen={isWishlistOpen}
+                    closeWishlist={() => setIsWishlistOpen(false)}
+                    navigateToShop={navigateToShop}
+                />
             </div>
         </header>
     );

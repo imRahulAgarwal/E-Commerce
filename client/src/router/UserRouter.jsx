@@ -19,6 +19,7 @@ import LoadingPage from "../components/Loading/Loading";
 import Shop from "../pages/user/Shop";
 import Product from "../pages/user/Product";
 import { setNewProducts } from "../store/products/productsSlice";
+import Checkout from "../pages/user/Checkout";
 
 const UserRouter = () => {
     const [loading, setLoading] = useState(true);
@@ -76,6 +77,7 @@ const UserRouter = () => {
                         <Route path="profile" element={<UserProfile />} />
                         <Route path="orders" element={<UserOrders />} />
                         <Route path="order/:orderId" element={<UserOrder />} />
+                        <Route path="checkout" element={<Checkout />} />
                     </>
                 ) : (
                     <>

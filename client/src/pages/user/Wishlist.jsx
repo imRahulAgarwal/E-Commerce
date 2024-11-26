@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import userService from "../../api/user/api";
 import { setUserWishlist } from "../../store/auth/userAuthSlice";
 
-const Wishlist = ({ isWishlistOpen, closeWishlist }) => {
+const Wishlist = ({ isWishlistOpen, closeWishlist, navigateToShop }) => {
     const wishlist = useSelector((state) => state.userAuth.wishlist);
     const dispatch = useDispatch();
 
@@ -18,6 +18,11 @@ const Wishlist = ({ isWishlistOpen, closeWishlist }) => {
                 });
             }
         });
+    };
+
+    const handleAddToFav = () => {
+        closeWishlist();
+        navigateToShop();
     };
 
     return (
@@ -60,7 +65,7 @@ const Wishlist = ({ isWishlistOpen, closeWishlist }) => {
                     <p className="text-gray-600">Your wishlist is empty!</p>
                     <button
                         className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                        onClick={closeWishlist}>
+                        onClick={handleAddToFav}>
                         Start Adding Favorites
                     </button>
                 </div>

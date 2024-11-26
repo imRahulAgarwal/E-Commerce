@@ -415,35 +415,22 @@ export const updateCartItems = asyncHandler(async (req, res, next) => {
     // Quantity to increase provided by a user.
     quantity = parseInt(quantity, 10) || 1;
 
-    let productExistsInCart = userCart.products.find((product) => product.productSizeId === productSizeId);
-    let cartQuantity = productExistsInCart ? parseInt(productExistsInCart.quantity, 10) : 0;
+    let productInCart = userCart?.products.find((product) => product.productSizeId.toString() === productSizeId);
+    let cartQuantity = productInCart ? parseInt(productInCart.quantity, 10) : 0;
 
-    let productExists = await ProductSize.aggregate([
-        { $match: { isActive: true, _id: returnObjectId(productSizeId), quantity: { $gte: quantity + cartQuantity } } },
-        {
-            $lookup: {
-                from: "product_colours",
-                foreignField: "_id",
-                localField: "productColourId",
-                as: "productColour",
-            },
-        },
-        { $unwind: "$productColour" },
-        { $match: { "productColour.isDeleted": false } },
-        {
-            $lookup: {
-                from: "products",
-                foreignField: "_id",
-                localField: "productColour.productId",
-                as: "productInfo",
-            },
-        },
-        { $unwind: "$productInfo" },
-        { $match: { "productInfo.isDeleted": false, "productInfo.isActive": true } },
-    ]);
+    // Fetch productSize details with sold quantity
+    let productSize = await ProductSize.findById(productSizeId);
 
-    if (!productExists.length) {
-        return next(new ErrorHandler("Product details do not exist", 404));
+    if (!productSize || !productSize.isActive) {
+        return next(new ErrorHandler("Product Size not found or inactive", 404));
+    }
+
+    // Calculate the available stock
+    let availableStock = productSize.quantity - productSize.sold;
+
+    // Validate the requested quantity
+    if (quantity + cartQuantity > availableStock) {
+        return next(new ErrorHandler(`Item out of stock`, 400));
     }
 
     let updateResult = await Cart.updateOne(
@@ -667,9 +654,12 @@ export const createOrder = asyncHandler(async (req, res, next) => {
     let products = [];
     let isAnyOutOfStock = false;
 
-    let { buyNow } = req.query;
-    let { addressId } = req.body;
-    if (buyNow === "true") {
+    let { addressId, isBuyNow } = req.body;
+    if (typeof isBuyNow !== "boolean") {
+        return res.status(400).json({ success: false, message: "Invalid purchase type" });
+    }
+
+    if (isBuyNow) {
         let { productSizeId } = req.body;
         if (!validateObjectId(productSizeId)) {
             return next(new ErrorHandler("Invalid Product Size ID format", 400));
@@ -802,17 +792,20 @@ export const createOrder = asyncHandler(async (req, res, next) => {
             taxableAmount,
             taxAmount,
             roundOffAmount,
-            isBuyNow: buyNow === "true" ? true : false,
+            isBuyNow: isBuyNow ? true : false,
         });
 
         return res.status(201).json({
-            order,
-            key: RAZORPAY_KEY_ID,
-            message: isAnyOutOfStock ? "Some products are out of stock" : undefined,
-            customer: {
-                name: user.fName + " " + user.lName,
-                email: user.email,
-                number: user.number,
+            success: true,
+            data: {
+                order,
+                key: RAZORPAY_KEY_ID,
+                message: isAnyOutOfStock ? "Some products are out of stock" : undefined,
+                customer: {
+                    name: user.fName + " " + user.lName,
+                    email: user.email,
+                    number: user.number,
+                },
             },
         });
     });
@@ -820,7 +813,6 @@ export const createOrder = asyncHandler(async (req, res, next) => {
 
 export const verifyPayment = asyncHandler(async (req, res, next) => {
     const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
-    const { order_id } = req.query;
     if (!razorpay_payment_id.startsWith("pay") || !razorpay_order_id.startsWith("order")) {
         req.flash("error", "Invalid payment id");
         return res.status(400).json({ success: false, message: "Invalid payment id" });
@@ -855,10 +847,10 @@ export const verifyPayment = asyncHandler(async (req, res, next) => {
     }
 
     if (!orderInfo.isBuyNow) {
-        await Cart.updateOne({ userId: orderInfo.userId }, { $set: { cart: [] } });
+        await Cart.updateOne({ userId: orderInfo.userId }, { $set: { products: [] } });
     }
 
-    return res.status(200).json({ success: true, message: "Order placed successfully", order_id });
+    return res.status(200).json({ success: true, message: "Order placed successfully" });
 });
 
 // Logout
@@ -876,6 +868,11 @@ export const readProducts = asyncHandler(async (req, res, next) => {
     limit = parseInt(limit, 10) || 10;
     order = order.toLowerCase() === "asc" ? 1 : -1;
     search = search.trim();
+
+    if (!["price,createdAt"].includes(sort)) {
+        sort = "price";
+    }
+
     sort = { [sort]: order };
     let searchQuery = {};
 
@@ -1101,6 +1098,7 @@ export const newProducts = asyncHandler(async (req, res, next) => {
         },
         { $project: { products: { $concatArrays: ["$recentProducts", "$allProducts"] } } },
         { $project: { products: { $slice: ["$products", 4] } } },
+        { $unwind: "$products" },
         {
             $lookup: {
                 from: "products",
@@ -1114,8 +1112,8 @@ export const newProducts = asyncHandler(async (req, res, next) => {
                     {
                         $project: {
                             _id: 1,
-                            name: "$name",
-                            price: "$price",
+                            name: 1,
+                            price: 1,
                             category: "$category.name",
                         },
                     },
@@ -1123,7 +1121,6 @@ export const newProducts = asyncHandler(async (req, res, next) => {
             },
         },
         { $unwind: "$parentProduct" },
-        { $unwind: "$products" },
         {
             $project: {
                 image: {
