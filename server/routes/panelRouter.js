@@ -78,6 +78,9 @@ panelRouter.get("/reports/orders", panelController.getOrderReports);
 panelRouter.get("/reports/revenue", panelController.getRevenueReports);
 panelRouter.get("/reports/customers", panelController.getCustomerReports);
 
+// Contact Us Query Management
+panelRouter.get("/contact-us", panelController.getContactUsQueries);
+
 // Logout
 panelRouter.post("/logout", panelController.logout);
 

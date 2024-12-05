@@ -656,6 +656,19 @@ class AdminPanel {
         toast.error(jsonData.error, toastCss);
         return false;
     }
+
+    async getContactUsQueries({ page, limit, sort, order }) {
+        let url = `${apiUrl}/panel/contact-us?page=${page}&limit=${limit}&sort=${sort}&order=${order}`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
 }
 
 const adminPanelService = new AdminPanel();

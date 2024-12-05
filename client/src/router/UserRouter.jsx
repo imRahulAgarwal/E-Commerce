@@ -18,7 +18,7 @@ import { setAddresses, setUserCart, setUserWishlist, userLogin } from "../store/
 import LoadingPage from "../components/Loading/Loading";
 import Shop from "../pages/user/Shop";
 import Product from "../pages/user/Product";
-import { setNewProducts } from "../store/products/productsSlice";
+import { setFeaturedProducts, setNewProducts } from "../store/products/productsSlice";
 import Checkout from "../pages/user/Checkout";
 
 const UserRouter = () => {
@@ -55,6 +55,12 @@ const UserRouter = () => {
         userService.newProducts().then(({ data }) => {
             if (data) {
                 dispatch(setNewProducts(data.products));
+            }
+        });
+
+        userService.featuredProducts().then(({ data }) => {
+            if (data) {
+                dispatch(setFeaturedProducts(data.products));
             }
         });
     }, []);

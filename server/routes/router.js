@@ -22,6 +22,7 @@ const authLimiter = rateLimit({
 });
 
 router.get("/products/new", controller.newProducts);
+router.get("/products/featured", controller.featuredProducts);
 router.get("/products", controller.readProducts);
 router.get("/products/:productId", controller.readProduct);
 

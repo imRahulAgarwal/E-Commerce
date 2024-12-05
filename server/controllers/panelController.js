@@ -29,6 +29,7 @@ import Address from "../models/address.js";
 import Category from "../models/category.js";
 import categorySchema from "../schemas/categorySchema.js";
 import getAggregationStages from "../utils/getAggregationStages.js";
+import ContactUs from "../models/contact-us.js";
 const DOMAIN = process.env.DOMAIN;
 const FRONTEND_DOMAIN = process.env.FRONTEND_DOMAIN;
 const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD;
@@ -1044,7 +1045,9 @@ export const getPermissions = asyncHandler(async (req, res, next) => {
 // @desc    Get list of roles
 // @route   GET /api/panel/roles
 export const getRoles = asyncHandler(async (req, res, next) => {
-    let roles = await UserRole.find({ isDeleted: false }).populate("permissions", "_id name").select("-isDeleted");
+    let roles = await UserRole.find({ isDeleted: false, name: { $ne: "Customer" } })
+        .populate("permissions", "_id name")
+        .select("-isDeleted");
     return res.status(200).json({ success: true, data: { roles } });
 });
 
@@ -1402,4 +1405,43 @@ export const logout = asyncHandler(async (req, res, next) => {
     let token = req.headers["authorization"]?.split(" ")[1];
     await User.updateOne({ _id: req.user._id, isDeleted: false, isCustomer: false }, { $pull: { loginTokens: token } });
     return res.status(200).json({ success: true, message: "User logged out" });
+});
+
+// Contact Us Queries
+
+// @desc    Get list of user queries
+// @route   GET /api/panel/contact-us
+export const getContactUsQueries = asyncHandler(async (req, res, next) => {
+    let { page = 1, limit = 10, sort = "name", order = "asc" } = req.query;
+
+    page = parseInt(page, 10) || 1;
+    limit = parseInt(limit, 10) || 10;
+
+    order = order.toLowerCase() === "desc" ? "desc" : "asc";
+
+    const allowedSortFields = ["name", "createdAt", "email", "number"];
+    if (!allowedSortFields.includes(sort)) {
+        sort = "name";
+    }
+
+    const queries = await ContactUs.find()
+        .sort({ [sort]: order })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean();
+
+    const total = await ContactUs.countDocuments();
+
+    let pages = Math.ceil(total / limit);
+
+    return res.status(200).json({
+        success: true,
+        data: {
+            queries,
+            pages,
+            total,
+            page: page > pages ? 1 : page,
+            limit,
+        },
+    });
 });

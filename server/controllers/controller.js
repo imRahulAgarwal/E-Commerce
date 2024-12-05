@@ -25,6 +25,7 @@ import profileSchema from "../schemas/profile.js";
 import Product from "../models/product.js";
 import moment from "moment-timezone";
 import contactUsSchema from "../schemas/contactUs.js";
+import { writeFileSync } from "fs";
 
 const DOMAIN = process.env.DOMAIN;
 const FRONTEND_USER_DOMAIN = process.env.FRONTEND_USER_DOMAIN;
@@ -596,53 +597,245 @@ export const updateWishlist = asyncHandler(async (req, res, next) => {
 // Orders
 export const readOrders = asyncHandler(async (req, res, next) => {
     const user = req.user;
-    const { page = 1, limit = 10, sort = "date", order = "asc" } = req.query;
+    let { page = 1, limit = 10, sort = "createdAt", order = "asc" } = req.query;
 
-    // Convert page and limit to integers
-    const pageNum = parseInt(page, 10);
-    const limitNum = parseInt(limit, 10);
+    page = parseInt(page, 10) || 1;
+    limit = parseInt(limit, 10) || 10;
 
-    // Define the sorting logic
-    const sortOptions = {
-        date: "createdAt",
-        amount: "totalAmount",
-    };
-    const sortField = sortOptions[sort] || sortOptions.date; // Default to sorting by date
-    const sortOrder = order === "desc" ? -1 : 1;
+    order = order.toLowerCase() === "asc" ? 1 : -1;
 
-    // Query to fetch the orders
-    const orders = await Order.find({ userId: user._id })
-        .sort({ [sortField]: sortOrder })
-        .skip((pageNum - 1) * limitNum)
-        .limit(limitNum);
+    let orders = await Order.aggregate([
+        { $match: {} },
+        { $skip: (page - 1) * limit },
+        { $limit: limit },
+        { $unwind: "$products" },
+        {
+            $lookup: {
+                from: "product_sizes",
+                foreignField: "_id",
+                localField: "products.productSizeId",
+                as: "productSizes",
+            },
+        },
+        { $unwind: "$productSizes" },
+        {
+            $lookup: {
+                from: "product_colours",
+                foreignField: "_id",
+                localField: "productSizes.productColourId",
+                as: "productColour",
+            },
+        },
+        { $unwind: "$productColour" },
+        {
+            $lookup: {
+                from: "products",
+                foreignField: "_id",
+                localField: "productColour.productId",
+                as: "product",
+            },
+        },
+        { $unwind: "$product" },
+        {
+            $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "product.category",
+                as: "category",
+            },
+        },
+        { $unwind: "$category" },
+        { $sort: { [sort]: order } },
+        {
+            $project: {
+                productName: "$product.name",
+                category: "$category.name",
+                price: "$products.price",
+                quantity: "$products.quantity",
+                razorpay_order_id: 1,
+                productId: "$product._id",
+                productColourId: "$productColour._id",
+                productSizeId: "$productSizes._id",
+                thumbnail: {
+                    $arrayElemAt: [
+                        {
+                            $filter: {
+                                input: "$productColour.images",
+                                as: "image",
+                                cond: { $eq: ["$$image.isDefault", true] },
+                            },
+                        },
+                        0,
+                    ],
+                },
+                createdAt: 1,
+                paymentStatus: 1,
+                productColour: "$productColour.colour",
+            },
+        },
+        { $addFields: { thumbnail: { $concat: [DOMAIN, "$thumbnail.url"] } } },
+        {
+            $group: {
+                _id: "$razorpay_order_id",
+                products: {
+                    $push: {
+                        productName: "$productName",
+                        category: "$category",
+                        price: "$price",
+                        quantity: "$quantity",
+                        productId: "$productId",
+                        productColourId: "$productColourId",
+                        productSizeId: "$productSizeId",
+                        thumbnail: "$thumbnail",
+                        productColour: "$productColour",
+                    },
+                },
+                createdAt: { $first: "$createdAt" },
+                paymentStatus: { $first: "$paymentStatus" },
+            },
+        },
+    ]);
 
     // Fetch the total number of orders for pagination details
-    const totalOrders = await Order.countDocuments({ userId: user._id });
+    const total = await Order.countDocuments({ userId: user._id });
+    let pages = Math.ceil(total / limit);
 
     res.status(200).json({
-        orders,
-        pagination: {
-            currentPage: pageNum,
-            totalPages: Math.ceil(totalOrders / limitNum),
-            totalOrders,
+        success: true,
+        data: {
+            orders,
+            pages,
+            total,
+            page: page > pages ? 1 : page,
+            limit,
         },
     });
 });
 
 export const readOrder = asyncHandler(async (req, res, next) => {
     const { orderId } = req.params;
-    const order = await Order.findOne({ _id: orderId, userId: req.user._id })
-        .populate("userId")
-        .populate({
-            path: "products.productSizeId",
-            populate: { path: "productColourId", populate: { path: "productId" } },
-        });
-
-    if (!order) {
-        return next(new ErrorHandler("Order details not found", 404));
+    if (!orderId) {
+        return next(new ErrorHandler("Invalid Order ID provided", 400));
     }
 
-    return res.status(200).json({ success: true, data: order });
+    let order = await Order.aggregate([
+        { $match: { razorpay_order_id: orderId, userId: req.user._id } },
+        {
+            $lookup: {
+                from: "addresses",
+                foreignField: "_id",
+                localField: "address",
+                as: "address",
+                pipeline: [{ $project: { isDeleted: 0, userId: 0, __v: 0 } }],
+            },
+        },
+        { $unwind: "$address" },
+        { $unwind: "$products" },
+        {
+            $lookup: {
+                from: "product_sizes",
+                foreignField: "_id",
+                localField: "products.productSizeId",
+                as: "productSize",
+            },
+        },
+        { $unwind: "$productSize" },
+        {
+            $lookup: {
+                from: "product_colours",
+                foreignField: "_id",
+                localField: "productSize.productColourId",
+                as: "productColour",
+            },
+        },
+        { $unwind: "$productColour" },
+        {
+            $lookup: {
+                from: "products",
+                foreignField: "_id",
+                localField: "productColour.productId",
+                as: "product",
+            },
+        },
+        { $unwind: "$product" },
+        {
+            $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "product.category",
+                as: "category",
+            },
+        },
+        { $unwind: "$category" },
+        {
+            $addFields: {
+                createdAt: {
+                    $dateToString: {
+                        format: "%d-%m-%Y, %H:%M",
+                        date: "$createdAt",
+                        timezone: "Asia/Kolkata",
+                    },
+                },
+            },
+        },
+        {
+            $group: {
+                _id: "$_id",
+                address: { $first: "$address" },
+                totalAmount: { $first: "$totalAmount" },
+                taxableAmount: { $first: "$taxableAmount" },
+                taxAmount: { $first: "$taxAmount" },
+                roundOffAmount: { $first: "$roundOffAmount" },
+                paymentStatus: { $first: "$paymentStatus" },
+                paymentDateTime: { $first: "$paymentDateTime" },
+                razorpay_payment_id: { $first: "$razorpay_payment_id" },
+                razorpay_order_id: { $first: "$razorpay_order_id" },
+                createdAt: { $first: "$createdAt" },
+                products: {
+                    $push: {
+                        productId: "$product._id",
+                        productName: "$product.name",
+                        productPrice: "$products.price",
+                        productCategory: "$category.name",
+                        productColourId: "$productColour._id",
+                        productColour: "$productColour.colour",
+                        productImage: {
+                            $let: {
+                                vars: {
+                                    image: {
+                                        $arrayElemAt: [
+                                            {
+                                                $filter: {
+                                                    input: "$productColour.images",
+                                                    as: "image",
+                                                    cond: { $eq: ["$$image.isDefault", true] },
+                                                },
+                                            },
+                                            0,
+                                        ],
+                                    },
+                                },
+                                in: {
+                                    $concat: [DOMAIN, "$$image.url"],
+                                },
+                            },
+                        },
+                        productSizeId: "$productSize._id",
+                        productQuantity: "$products.quantity",
+                        productSize: "$productSize.size",
+                    },
+                },
+            },
+        },
+    ]);
+
+    if (!order.length) {
+        return next(new ErrorHandler("Order details not found", 404));
+    }
+    console.log(order);
+    order = order[0];
+
+    return res.status(200).json({ success: true, data: { order } });
 });
 
 export const createOrder = asyncHandler(async (req, res, next) => {
@@ -835,7 +1028,7 @@ export const verifyPayment = asyncHandler(async (req, res, next) => {
 
     orderInfo = await Order.findOneAndUpdate(
         { razorpay_order_id, paymentStatus: "Pending", userId: req.user._id },
-        { $set: { paymentStatus: "Completed", razorpay_payment_id, razorpay_signature } },
+        { $set: { paymentStatus: "Completed", razorpay_payment_id, razorpay_signature, paymentDateTime: new Date() } },
         { returnDocument: "after" }
     ).populate({ path: "userId" });
 
@@ -1065,22 +1258,69 @@ export const contactUs = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler(validation.error.details[0].message, 400));
     }
 
-    let { name, email, number, message } = validation.value;
-    let createData = { message, name, email, number };
-
-    if (req.user) {
-        createData.name = req.user.fName + " " + req.user.lName;
-        createData.email = req.user.email;
-        createData.number = req.user.number;
-        createData.userId = req.user._id;
-    }
-
-    await ContactUs.create(createData);
+    await ContactUs.create(validation.value);
 
     return res.status(200).json({ success: true, message: "We will contact you shortly" });
 });
 
-export const featuredProducts = asyncHandler(async (req, res, next) => {});
+export const featuredProducts = asyncHandler(async (req, res, next) => {
+    const products = await ProductColour.aggregate([
+        { $match: { isDeleted: false } },
+        { $limit: 4 },
+        {
+            $lookup: {
+                from: "products",
+                foreignField: "_id",
+                localField: "productId",
+                as: "parentProduct",
+                pipeline: [
+                    { $match: { isDeleted: false, isActive: true } },
+                    { $lookup: { from: "categories", foreignField: "_id", localField: "category", as: "category" } },
+                    { $unwind: "$category" },
+                    {
+                        $project: {
+                            _id: 1,
+                            name: 1,
+                            price: 1,
+                            category: "$category.name",
+                        },
+                    },
+                ],
+            },
+        },
+        { $unwind: "$parentProduct" },
+        {
+            $project: {
+                image: {
+                    $arrayElemAt: [
+                        {
+                            $map: {
+                                input: {
+                                    $filter: {
+                                        input: "$images",
+                                        as: "image",
+                                        cond: { $eq: ["$$image.isDefault", true] },
+                                    },
+                                },
+                                as: "image",
+                                in: { $concat: [DOMAIN, "$$image.url"] },
+                            },
+                        },
+                        0,
+                    ],
+                },
+                colour: "$colour",
+                productColourId: "$_id",
+                parentProductId: "$parentProduct._id",
+                name: "$parentProduct.name",
+                price: "$parentProduct.price",
+                category: "$parentProduct.category",
+            },
+        },
+    ]);
+
+    return res.status(200).json({ success: true, data: { products: products || [] } });
+});
 
 export const newProducts = asyncHandler(async (req, res, next) => {
     const recentThreshold = moment().subtract(7, "days").toDate();

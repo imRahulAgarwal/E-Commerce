@@ -26,6 +26,7 @@ import adminPanelService from "../api/admin/api-admin";
 import { login } from "../store/auth/adminAuthSlice";
 import LoadingPage from "../components/Loading/Loading";
 import AdminLayout from "../layout/AdminLayout";
+import ContactUs from "../pages/admin/ContactUs";
 
 const AdminRouter = () => {
     const [loading, setLoading] = useState(true);
@@ -71,6 +72,7 @@ const AdminRouter = () => {
                         <Route path="reports" element={<Reports />} />
                         <Route path="audits" element={<Audits />} />
                         <Route path="audits/:auditId" element={<Audit />} />
+                        <Route path="contact-us" element={<ContactUs />} />
                         <Route index element={<Navigate to="/panel/dashboard" />} />
                     </>
                 ) : (

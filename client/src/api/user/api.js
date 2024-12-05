@@ -151,8 +151,8 @@ class User {
         return false;
     }
 
-    async getOrders({ page, limit, search, sort, order }) {
-        let url = `${apiUrl}/panel/orders?page=${page}&limit=${limit}&search=${search}&sort=${sort}&order=${order}`;
+    async getOrders({ page, limit, sort, order }) {
+        let url = `${apiUrl}/orders?page=${page}&limit=${limit}&sort=${sort}&order=${order}`;
 
         let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
         let jsonData = await response.json();
@@ -164,9 +164,18 @@ class User {
         return false;
     }
 
-    async getOrder(orderId) {}
+    async getOrder(orderId) {
+        let url = `${apiUrl}/orders/${orderId}`;
 
-    async createOrder() {}
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
 
     async logout() {
         const url = `${apiUrl}/logout`;
@@ -210,6 +219,19 @@ class User {
 
     async newProducts() {
         let url = `${apiUrl}/products/new`;
+
+        let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
+        let jsonData = await response.json();
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        toast.error(jsonData.error, toastCss);
+        return false;
+    }
+
+    async featuredProducts() {
+        let url = `${apiUrl}/products/featured`;
 
         let response = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } });
         let jsonData = await response.json();

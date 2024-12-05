@@ -1,170 +1,134 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import userService from "../../api/user/api";
 
 const UserOrder = () => {
-    const orderDetails = {
-        orderId: "ORD12345",
-        razorpayOrderId: "RAZOR12345",
-        razorpayPaymentId: "PAY12345",
-        product: [
-            {
-                productName: "T-shirt",
-                productColor: "Blue",
-                productQuantity: 1,
-                productPrice: 499,
-                productThumbnail: "https://via.placeholder.com/100",
-                productCategory: "Clothing",
-                productId: "PROD1",
-                productColorId: "COL1",
-                productSize: "L",
-            },
-            {
-                productName: "Hoodie",
-                productColor: "Black",
-                productQuantity: 2,
-                productPrice: 799,
-                productThumbnail: "https://via.placeholder.com/100",
-                productCategory: "Clothing",
-                productId: "PROD2",
-                productColorId: "COL2",
-                productSize: "M",
-            },
-        ],
-        totalAmount: 407,
-        taxAmount: 99,
-        roundoffamount: 9,
-        address: {
-            line1: "123 Main Street",
-            line2: "Apt 4B",
-            city: "New York",
-            state: "NY",
-            country: "USA",
-            pincode: "10001",
-        },
-        paymentStatus: "Paid",
-        paymentDateTime: "2024-11-15T10:30:00Z",
-        deliveryStatus: "Shipped",
-        trackingLink: "https://example.com/track",
-    };
+    const { orderId } = useParams();
+    const [order, setOrder] = useState({});
+    const [loading, setLoading] = useState(true);
 
-    const {
-        orderId,
-        razorpayOrderId,
-        razorpayPaymentId,
-        product,
-        totalAmount,
-        taxAmount,
-        roundoffamount,
-        address,
-        paymentStatus,
-        deliveryStatus,
-    } = orderDetails;
+    useEffect(() => {
+        userService
+            .getOrder(orderId)
+            .then(({ data }) => {
+                if (data) {
+                    setOrder(data.order);
+                }
+            })
+            .finally(() => setLoading(false));
+    }, [orderId]);
+
+    if (loading) {
+        return <h1 className="text-blue-500 text-2xl font-bold text-center py-10">Loading...</h1>;
+    }
 
     return (
-        <div className="bg-gray-50 min-h-screen p-6 font-lato">
-            <h1 className="text-3xl font-extrabold text-blue-600 mb-6">Order Details</h1>
+        <div className="min-h-screen bg-gray-100 p-4 sm:p-6">
+            <h1 className="text-2xl sm:text-4xl font-extrabold text-blue-700 mb-6 sm:mb-8">Order Details</h1>
 
             {/* Order Details Section */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* General Order Details */}
-                <div>
-                    <h2 className="text-2xl font-semibold text-gray-800 mb-4">Order Summary</h2>
-                    <div className="space-y-3">
+            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-8 mb-6 sm:mb-10">
+                <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-4 sm:mb-6">Order Summary</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                    {/* General Order Details */}
+                    <div className="space-y-2 sm:space-y-4">
                         <div>
-                            <p className="text-gray-600 text-sm font-medium">Order ID:</p>
-                            <p className="font-bold text-lg">{orderId}</p>
+                            <p className="text-gray-500 font-medium">Order ID:</p>
+                            <p className="text-base sm:text-xl font-bold text-gray-800">{order.razorpay_order_id}</p>
                         </div>
                         <div>
-                            <p className="text-gray-600 text-sm font-medium">Payment Status:</p>
+                            <p className="text-gray-500 font-medium">Payment Status:</p>
                             <p
-                                className={`font-bold text-lg ${
-                                    paymentStatus === "Paid" ? "text-green-600" : "text-red-600"
+                                className={`text-base sm:text-xl font-bold ${
+                                    order.paymentStatus === "Completed" ? "text-green-500" : "text-red-500"
                                 }`}>
-                                {paymentStatus}
+                                {order.paymentStatus}
                             </p>
                         </div>
                         <div>
-                            <p className="text-gray-600 text-sm font-medium">Delivery Status:</p>
-                            <p className="font-bold text-lg">{deliveryStatus}</p>
+                            <p className="text-gray-500 font-medium">Order Place Time:</p>
+                            <p className="text-base sm:text-xl font-bold">{order.createdAt}</p>
                         </div>
                     </div>
-                </div>
 
-                {/* Razorpay Details */}
-                <div>
-                    <h2 className="text-2xl font-semibold text-gray-800 mb-4">Payment Information</h2>
-                    <div className="space-y-3">
+                    {/* Razorpay Details */}
+                    <div className="space-y-2 sm:space-y-4">
                         <div>
-                            <p className="text-gray-600 text-sm font-medium">Razorpay Order ID:</p>
-                            <p className="font-bold text-lg">{razorpayOrderId}</p>
+                            <p className="text-gray-500 font-medium">Razorpay Order ID:</p>
+                            <p className="text-base sm:text-xl font-bold text-gray-800">{order.razorpay_order_id}</p>
                         </div>
                         <div>
-                            <p className="text-gray-600 text-sm font-medium">Razorpay Payment ID:</p>
-                            <p className="font-bold text-lg">{razorpayPaymentId}</p>
+                            <p className="text-gray-500 font-medium">Razorpay Payment ID:</p>
+                            <p className="text-base sm:text-xl font-bold text-gray-800">{order.razorpay_payment_id}</p>
+                        </div>
+                        <div>
+                            <p className="text-gray-500 font-medium">Payment Time:</p>
+                            <p className="text-base sm:text-xl font-bold text-gray-800">{order.paymentDateTime}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Product Details */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                <h2 className="text-2xl font-semibold text-gray-800 mb-4">Products</h2>
-                <div className="space-y-6">
-                    {product.map((item, index) => (
-                        <div key={item.productId} className="space-y-4">
-                            <div className="flex flex-col sm:flex-row gap-x-4 gap-y-2">
-                                <img
-                                    src={item.productThumbnail}
-                                    alt={item.productName}
-                                    className="w-24 h-24 object-cover rounded-lg"
-                                />
-                                <div className="flex-1">
-                                    <h3 className="font-bold text-gray-800 text-lg">{item.productName}</h3>
-                                    <p className="text-sm text-gray-500">Category: {item.productCategory}</p>
-                                    <p className="text-sm text-gray-500">Color: {item.productColor}</p>
-                                    <p className="text-sm text-gray-500">Size: {item.productSize}</p>
-                                    <p className="text-sm text-gray-500">Quantity: {item.productQuantity}</p>
-                                    <p className="text-sm text-gray-500">Price: ₹{item.productPrice}</p>
-                                </div>
+            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-8 mb-6 sm:mb-10">
+                <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-4 sm:mb-6">Products</h2>
+                <div className="space-y-4 sm:space-y-6">
+                    {order.products.map((item) => (
+                        <div
+                            key={item.productSizeId}
+                            className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 border-b pb-4 sm:pb-6">
+                            <img
+                                src={item.productImage}
+                                alt={item.productName}
+                                className="w-20 sm:w-24 h-20 sm:h-24 rounded-xl shadow-md object-cover"
+                            />
+                            <div className="flex-1 space-y-2">
+                                <Link to={`/product/${item.productColourId}`}>
+                                    <h3 className="text-base sm:text-lg font-bold text-gray-800 hover:text-blue-600">
+                                        {item.productName}
+                                    </h3>
+                                </Link>
+                                <p className="text-sm sm:text-base text-gray-500">Category: {item.productCategory}</p>
+                                <p className="text-sm sm:text-base text-gray-500">Color: {item.productColour}</p>
+                                <p className="text-sm sm:text-base text-gray-500">Size: {item.productSize}</p>
+                                <p className="text-sm sm:text-base text-gray-500">Quantity: {item.productQuantity}</p>
+                                <p className="text-sm sm:text-base text-gray-500">Price: ₹{item.productPrice}</p>
                             </div>
-                            {index < product.length - 1 && <hr className="my-4 border-gray-300" />}
                         </div>
                     ))}
                 </div>
             </div>
 
             {/* Address and Payment Details */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {/* Shipping Address */}
-                <div className="bg-white rounded-lg shadow-md p-6">
-                    <h2 className="text-2xl font-semibold text-gray-800 mb-4">Shipping Address</h2>
-                    <p className="text-gray-800 text-sm">{address.line1}</p>
-                    {address.line2 && <p className="text-gray-800 text-sm">{address.line2}</p>}
-                    <p className="text-gray-800 text-sm">
-                        {address.city}, {address.state}, {address.pincode}
+                <div className="bg-white rounded-xl shadow-lg p-4 sm:p-8">
+                    <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2 sm:mb-4">Shipping Address</h2>
+                    <p className="text-sm sm:text-base text-gray-700">
+                        {order.address.addressLine1}, {order.address.addressLine2 && `${order.address.addressLine2}, `}
+                        {order.address.city}, {order.address.state}, {order.address.pincode}, {order.address.country}
                     </p>
-                    <p className="text-gray-800 text-sm">{address.country}</p>
                 </div>
 
                 {/* Payment Details */}
-                <div className="bg-white rounded-lg shadow-md p-6">
-                    <h2 className="text-2xl font-semibold text-gray-800 mb-4">Payment Details</h2>
-                    <div className="space-y-3">
+                <div className="bg-white rounded-xl shadow-lg p-4 sm:p-8">
+                    <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2 sm:mb-4">Payment Details</h2>
+                    <div className="space-y-2 sm:space-y-4">
                         <div className="flex justify-between">
-                            <p className="text-gray-600 text-sm font-medium">Net Amount:</p>
-                            <p className="font-bold text-lg">₹{totalAmount - taxAmount - roundoffamount}</p>
+                            <p className="text-gray-500 font-medium">Net Amount:</p>
+                            <p className="text-base sm:text-xl font-bold text-gray-800">₹{order.taxableAmount}</p>
                         </div>
                         <div className="flex justify-between">
-                            <p className="text-gray-600 text-sm font-medium">Tax Amount:</p>
-                            <p className="font-bold text-lg">₹{taxAmount}</p>
+                            <p className="text-gray-500 font-medium">Tax Amount:</p>
+                            <p className="text-base sm:text-xl font-bold text-gray-800">₹{order.taxAmount}</p>
                         </div>
                         <div className="flex justify-between">
-                            <p className="text-gray-600 text-sm font-medium">Round-off Amount:</p>
-                            <p className="font-bold text-lg">₹{roundoffamount}</p>
+                            <p className="text-gray-500 font-medium">Round-off Amount:</p>
+                            <p className="text-base sm:text-xl font-bold text-gray-800">₹{order.roundOffAmount}</p>
                         </div>
-                        <hr className="my-2 border-gray-300" />
-                        <div className="flex justify-between">
-                            <p className="text-gray-600 text-sm font-medium">Total Amount:</p>
-                            <p className="font-bold text-2xl text-blue-600">₹{totalAmount}</p>
+                        <div className="flex justify-between border-t pt-4 mt-4">
+                            <p className="text-gray-500 font-medium">Total Amount:</p>
+                            <p className="text-xl sm:text-2xl font-bold text-blue-600">₹{order.totalAmount}</p>
                         </div>
                     </div>
                 </div>

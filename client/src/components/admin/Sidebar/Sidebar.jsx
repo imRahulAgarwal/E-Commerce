@@ -12,6 +12,7 @@ import {
     faClipboardList,
     faSignOutAlt,
     faList,
+    faAddressBook,
 } from "@fortawesome/free-solid-svg-icons";
 import { NavLink } from "react-router-dom";
 import { useDispatch } from "react-redux";
@@ -28,6 +29,7 @@ const navLinks = [
     { icon: faUsersCog, text: "Panel Users", path: "/panel/panel-users" },
     { icon: faChartLine, text: "Reports", path: "/panel/reports" },
     { icon: faClipboardList, text: "Audits", path: "/panel/audits" },
+    { icon: faAddressBook, text: "Contact Us", path: "/panel/contact-us" },
 ];
 
 const Sidebar = ({ isOpen }) => {

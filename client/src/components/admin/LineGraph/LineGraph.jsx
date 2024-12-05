@@ -19,17 +19,43 @@ const LineGraph = ({ title, apiKey }) => {
     const [reports, setReports] = useState([]);
     const [filter, setFilter] = useState("month");
 
-    const generateChartData = (label, dataset, filterType) => ({
-        datasets: [
-            {
-                label,
-                data: dataset,
-                borderColor: "#2563eb",
-                backgroundColor: "rgba(37, 99, 235, 0.5)",
-                tension: 0.4,
-            },
-        ],
-    });
+    const generateChartData = (label, dataset, filterType) => {
+        // Generate full timeline based on filter
+        const timeline = generateTimeline(filterType); // Returns an array of labels
+        const dataMap = Object.fromEntries(dataset.map((item) => [item.id, item.data])); // Map for quick access
+        const chartData = timeline.map((time) => dataMap[time] || 0); // Fill gaps with 0
+
+        return {
+            labels: timeline,
+            datasets: [
+                {
+                    label,
+                    data: chartData,
+                    borderColor: "#2563eb",
+                    backgroundColor: "rgba(37, 99, 235, 0.5)",
+                    tension: 0.4,
+                },
+            ],
+        };
+    };
+
+    const generateTimeline = (filterType) => {
+        const now = new Date();
+        switch (filterType) {
+            case "7days":
+                return Array.from({ length: 7 }, (_, i) =>
+                    new Date(now.getFullYear(), now.getMonth(), now.getDate() - i).toISOString().slice(0, 10)
+                ).reverse(); // Past 7 days in YYYY-MM-DD format
+            case "month":
+                return Array.from({ length: 12 }, (_, i) =>
+                    new Date(now.getFullYear(), i, 1).toLocaleString("default", { month: "short" })
+                ); // Short month names
+            case "year":
+                return Array.from({ length: 5 }, (_, i) => `${now.getFullYear() - i}`).reverse(); // Past 5 years
+            default:
+                return [];
+        }
+    };
 
     useEffect(() => {
         setLoading(true);

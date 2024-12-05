@@ -54,10 +54,25 @@ const Header = () => {
 
     const clearSearch = () => setSearchQuery("");
 
-    const handleSearchChange = (e) => {
-        const query = e.target.value;
-        setSearchQuery(query);
+    const searchProducts = () => {
+        userService.getProducts({ limit: 5, search: searchQuery }).then(({ data }) => {
+            if (data) {
+                setSearchResults(data.products);
+            }
+        });
     };
+
+    useEffect(() => {
+        const delayDebounce = setTimeout(() => {
+            if (searchQuery) {
+                searchProducts();
+            } else {
+                setSearchResults([]);
+            }
+        }, 300);
+
+        return () => clearTimeout(delayDebounce);
+    }, [searchQuery]);
 
     const navigateToShop = () => {
         navigate("/shop");
@@ -103,7 +118,7 @@ const Header = () => {
                             type="text"
                             placeholder="Search..."
                             value={searchQuery}
-                            onChange={handleSearchChange}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full border rounded-md pl-10 pr-10 py-2 text-gray-700 focus:outline-none"
                         />
                         <FontAwesomeIcon
@@ -120,14 +135,22 @@ const Header = () => {
 
                         {/* Search Results Dropdown */}
                         {searchQuery && searchResults.length > 0 && (
-                            <div className="absolute left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-50">
-                                <ul className="py-2">
+                            <div className="absolute left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-50 max-w-full">
+                                <ul className="py-2 max-w-full">
                                     {searchResults.map((result) => (
-                                        <li key={result.id} className="hover:bg-gray-100">
+                                        <li
+                                            key={result.colorId}
+                                            className="hover:bg-gray-100 flex items-center px-2 py-2">
+                                            <img
+                                                src={result.image}
+                                                alt={`${result.name}-${result.color}`}
+                                                className="w-12 h-12 object-cover rounded mr-2"
+                                            />
                                             <NavLink
-                                                to={`/product/${result.id}`} // Replace with your product URL structure
-                                                className="block px-4 py-2 text-sm text-gray-700">
-                                                {result.name}
+                                                to={`/product/${result.colorId}`}
+                                                onClick={clearSearch}
+                                                className="block flex-1 text-sm text-gray-700 truncate">
+                                                {result.name} - {result.color} ({result.category})
                                             </NavLink>
                                         </li>
                                     ))}

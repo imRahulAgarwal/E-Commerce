@@ -43,19 +43,23 @@ const Home = () => {
                         }`}>
                         {featuredProducts.length ? (
                             featuredProducts.map((product) => (
-                                <div
-                                    key={product.id}
-                                    className="bg-white border rounded-lg shadow-md hover:shadow-lg transition-transform transform hover:scale-105 p-4">
+                                <Link
+                                    to={`/product/${product.productColourId}`}
+                                    key={product.productColourId}
+                                    className="bg-gray-100 border rounded-lg shadow-md hover:shadow-lg transition-transform transform hover:scale-[1.02] p-4">
                                     <img
                                         src={product.image}
-                                        alt={product.title}
-                                        className="w-full h-48 object-cover rounded-t-lg"
+                                        alt={`${product.name} - ${product.colour}`}
+                                        className="w-full aspect-square max-h-[300px] max-w-[300px] object-contain mx-auto rounded-t-lg"
                                     />
                                     <div className="mt-4">
-                                        <h3 className="text-lg font-semibold text-gray-900">{product.title}</h3>
-                                        <p className="text-blue-500 font-bold mt-2">{product.price}</p>
+                                        <h3 className="font-semibold text-gray-900">
+                                            {product.name} - {product.colour}
+                                        </h3>
+                                        <span className="text-sm text-gray-500">{product.category}</span>
+                                        <p className="font-bold mt-2 text-gray-700">₹ {product.price}</p>
                                     </div>
-                                </div>
+                                </Link>
                             ))
                         ) : (
                             <div className="border bg-gray-100 w-full py-3 text-center text-lg rounded shadow">
