@@ -41,7 +41,6 @@ const Profile = () => {
     function ProfileTabContent() {
         return (
             <div className="flex flex-col items-center lg:items-start w-full space-y-4">
-                <div className="w-24 h-24 bg-gray-300 rounded-full mb-4"></div>
                 <div className="w-full space-y-2 text-gray-700">
                     <div className="bg-gray-100 p-3 rounded-md">
                         Name: {user.fName} {user.lName}

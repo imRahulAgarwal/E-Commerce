@@ -44,7 +44,7 @@ const LineGraph = ({ title, apiKey }) => {
         switch (filterType) {
             case "7days":
                 return Array.from({ length: 7 }, (_, i) =>
-                    new Date(now.getFullYear(), now.getMonth(), now.getDate() - i).toISOString().slice(0, 10)
+                    new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1 - i).toISOString().slice(0, 10)
                 ).reverse(); // Past 7 days in YYYY-MM-DD format
             case "month":
                 return Array.from({ length: 12 }, (_, i) =>
@@ -117,4 +117,4 @@ const LineGraph = ({ title, apiKey }) => {
     );
 };
 
-export default LineGraph;
+export default React.memo(LineGraph);

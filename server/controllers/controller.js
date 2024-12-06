@@ -776,6 +776,13 @@ export const readOrder = asyncHandler(async (req, res, next) => {
                         timezone: "Asia/Kolkata",
                     },
                 },
+                paymentDateTime: {
+                    $dateToString: {
+                        format: "%d-%m-%Y, %H:%M",
+                        date: "$paymentDateTime",
+                        timezone: "Asia/Kolkata",
+                    },
+                },
             },
         },
         {
@@ -832,7 +839,7 @@ export const readOrder = asyncHandler(async (req, res, next) => {
     if (!order.length) {
         return next(new ErrorHandler("Order details not found", 404));
     }
-    console.log(order);
+
     order = order[0];
 
     return res.status(200).json({ success: true, data: { order } });
@@ -972,7 +979,6 @@ export const createOrder = asyncHandler(async (req, res, next) => {
 
     razorpay.orders.create({ amount: totalAmount * 100, currency }, async (error, order) => {
         if (error) {
-            console.log(error);
             return next(new ErrorHandler(error, 500));
         }
         await Order.create({

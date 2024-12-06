@@ -96,6 +96,20 @@ class AdminPanel {
         return false;
     }
 
+    async dashboardInfo() {
+        const url = `${apiUrl}/panel/dashboard`;
+        const token = getToken();
+
+        const resposne = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        const jsonData = await resposne.json();
+
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        return false;
+    }
+
     async profile() {
         const url = `${apiUrl}/panel/profile`;
         const token = getToken();
@@ -148,10 +162,20 @@ class AdminPanel {
         toast.error(jsonData.error, toastCss);
         return false;
     }
-    async getOrder(orderId) {}
 
-    async getTransactions() {}
-    async getTransaction() {}
+    async getOrder(orderId) {
+        const url = `${apiUrl}/panel/orders/${orderId}`;
+        const token = getToken();
+
+        const resposne = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        const jsonData = await resposne.json();
+
+        if (jsonData.success) {
+            return jsonData;
+        }
+
+        return false;
+    }
 
     async getCategories() {
         let url = `${apiUrl}/panel/categories`;
@@ -228,9 +252,6 @@ class AdminPanel {
         toast.error(jsonData.error, toastCss);
         return false;
     }
-
-    async getInventory() {}
-    async updateInventory() {}
 
     async getPermissions() {
         let url = `${apiUrl}/panel/permissions`;
@@ -395,9 +416,6 @@ class AdminPanel {
         toast.error(jsonData.error, toastCss);
         return false;
     }
-
-    async getReports(page, limit, search, sort, order) {}
-    async getReport() {}
 
     async getAudits({ page, limit, search, sort, order }) {
         let url = `${apiUrl}/panel/audits?page=${page}&limit=${limit}&search=${search}&sort=${sort}&order=${order}`;

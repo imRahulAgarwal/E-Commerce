@@ -30,6 +30,8 @@ import Category from "../models/category.js";
 import categorySchema from "../schemas/categorySchema.js";
 import getAggregationStages from "../utils/getAggregationStages.js";
 import ContactUs from "../models/contact-us.js";
+import moment from "moment-timezone";
+import { Types } from "mongoose";
 const DOMAIN = process.env.DOMAIN;
 const FRONTEND_DOMAIN = process.env.FRONTEND_DOMAIN;
 const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD;
@@ -208,7 +210,62 @@ export const changePassword = asyncHandler(async (req, res, next) => {
 
 // @desc    Get dashboard data for panel user
 // @route   GET /api/panel/dashboard
-export const getDashboard = asyncHandler(async (req, res, next) => {});
+export const getDashboard = asyncHandler(async (req, res, next) => {
+    const todayOrders = await Order.countDocuments({
+        paymentStatus: "Completed",
+        paymentDateTime: { $gte: moment().startOf("day").toDate(), $lt: moment().endOf("day").toDate() },
+    });
+    const totalOrders = await Order.countDocuments({ paymentStatus: "Completed" });
+
+    const todayCustomers = await User.countDocuments({
+        isCustomer: true,
+        isDeleted: false,
+        createdAt: { $gte: moment().startOf("day").toDate(), $lt: moment().endOf("day").toDate() },
+    });
+    const totalCustomers = await User.countDocuments({ isCustomer: true, isDeleted: false });
+
+    let todayRevenue = await Order.aggregate([
+        {
+            $match: {
+                paymentStatus: "Completed",
+                paymentDateTime: {
+                    $gte: moment().startOf("day").toDate(),
+                    $lt: moment().endOf("day").toDate(),
+                },
+            },
+        },
+        { $group: { _id: null, revenue: { $sum: "$totalAmount" } } },
+    ]);
+
+    if (todayRevenue.length) {
+        todayRevenue = todayRevenue[0].revenue;
+    } else {
+        todayRevenue = 0;
+    }
+
+    let totalRevenue = await Order.aggregate([
+        { $match: { paymentStatus: "Completed" } },
+        { $group: { _id: null, revenue: { $sum: "$totalAmount" } } },
+    ]);
+
+    if (totalRevenue.length) {
+        totalRevenue = totalRevenue[0].revenue;
+    } else {
+        totalRevenue = 0;
+    }
+
+    return res.status(200).json({
+        success: true,
+        data: {
+            todayCustomers,
+            todayOrders,
+            todayRevenue,
+            totalCustomers,
+            totalOrders,
+            totalRevenue,
+        },
+    });
+});
 
 // Customer Management
 
@@ -361,24 +418,142 @@ export const getOrderById = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Provide an order ID", 400));
     }
 
-    let order = await Order.findOne({ _id: orderId })
-        .populate({
-            path: "products.productSizeId",
-            populate: {
-                path: "productColourId",
-                populate: {
-                    path: "productId",
+    let order = await Order.aggregate([
+        { $match: { _id: new Types.ObjectId(orderId) } },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "userId",
+                as: "user",
+                pipeline: [{ $project: { fName: 1, lName: 1, email: 1, number: 1 } }],
+            },
+        },
+        { $unwind: "$user" },
+        {
+            $lookup: {
+                from: "addresses",
+                foreignField: "_id",
+                localField: "address",
+                as: "address",
+                pipeline: [{ $project: { isDeleted: 0, userId: 0, __v: 0 } }],
+            },
+        },
+        { $unwind: "$address" },
+        { $unwind: "$products" },
+        {
+            $lookup: {
+                from: "product_sizes",
+                foreignField: "_id",
+                localField: "products.productSizeId",
+                as: "productSize",
+            },
+        },
+        { $unwind: "$productSize" },
+        {
+            $lookup: {
+                from: "product_colours",
+                foreignField: "_id",
+                localField: "productSize.productColourId",
+                as: "productColour",
+            },
+        },
+        { $unwind: "$productColour" },
+        {
+            $lookup: {
+                from: "products",
+                foreignField: "_id",
+                localField: "productColour.productId",
+                as: "product",
+            },
+        },
+        { $unwind: "$product" },
+        {
+            $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "product.category",
+                as: "category",
+            },
+        },
+        { $unwind: "$category" },
+        {
+            $addFields: {
+                createdAt: {
+                    $dateToString: {
+                        format: "%d-%m-%Y, %H:%M",
+                        date: "$createdAt",
+                        timezone: "Asia/Kolkata",
+                    },
+                },
+                paymentDateTime: {
+                    $dateToString: {
+                        format: "%d-%m-%Y, %H:%M",
+                        date: "$paymentDateTime",
+                        timezone: "Asia/Kolkata",
+                    },
                 },
             },
-        })
-        .populate({ path: "userId" })
-        .populate({ path: "address" });
+        },
+        {
+            $group: {
+                _id: "$_id",
+                user: { $first: "$user" },
+                address: { $first: "$address" },
+                totalAmount: { $first: "$totalAmount" },
+                taxableAmount: { $first: "$taxableAmount" },
+                taxAmount: { $first: "$taxAmount" },
+                roundOffAmount: { $first: "$roundOffAmount" },
+                paymentStatus: { $first: "$paymentStatus" },
+                paymentDateTime: { $first: "$paymentDateTime" },
+                razorpay_payment_id: { $first: "$razorpay_payment_id" },
+                razorpay_order_id: { $first: "$razorpay_order_id" },
+                createdAt: { $first: "$createdAt" },
+                products: {
+                    $push: {
+                        productId: "$product._id",
+                        productName: "$product.name",
+                        productPrice: "$products.price",
+                        productCategory: "$category.name",
+                        productColourId: "$productColour._id",
+                        productColour: "$productColour.colour",
+                        productImage: {
+                            $let: {
+                                vars: {
+                                    image: {
+                                        $arrayElemAt: [
+                                            {
+                                                $filter: {
+                                                    input: "$productColour.images",
+                                                    as: "image",
+                                                    cond: { $eq: ["$$image.isDefault", true] },
+                                                },
+                                            },
+                                            0,
+                                        ],
+                                    },
+                                },
+                                in: {
+                                    $concat: [DOMAIN, "$$image.url"],
+                                },
+                            },
+                        },
+                        productSizeId: "$productSize._id",
+                        productQuantity: "$products.quantity",
+                        productSize: "$productSize.size",
+                    },
+                },
+            },
+        },
+    ]);
 
-    if (!order) {
+    if (!order.length) {
         return next(new ErrorHandler("Order details not found", 404));
     }
 
-    return res.status(200).json({ success: true, data: order });
+    order = order[0];
+
+    return res.status(200).json({ success: true, data: { order } });
 });
 
 // Category Management

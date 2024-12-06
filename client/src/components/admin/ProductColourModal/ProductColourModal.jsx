@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from "@fortawesome/free-solid-svg-icons";
 import { useForm } from "react-hook-form";
-import adminPanelService from "../../../api/admin/api-admin";
 
 const ProductColourModal = ({ onClose, initialData, productId, onSave }) => {
     const [mainImage, setMainImage] = useState(null);

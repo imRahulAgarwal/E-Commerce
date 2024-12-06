@@ -1,7 +1,7 @@
 // Header.js
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import React from "react";
-import { faBars } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faUser } from "@fortawesome/free-solid-svg-icons";
 import { Link } from "react-router-dom";
 
 const Header = ({ handleHamburgerBtn }) => {
@@ -12,9 +12,9 @@ const Header = ({ handleHamburgerBtn }) => {
                 onClick={handleHamburgerBtn}>
                 <FontAwesomeIcon icon={faBars} />
             </button>
-            <div>
-                <Link to="/panel/profile">
-                    <img src="https://placehold.co/45x45/png" alt="Profile" className="rounded-full" />
+            <div className="border h-11 w-11 rounded-full flex items-center justify-center">
+                <Link to="/panel/profile" className="">
+                    <FontAwesomeIcon icon={faUser} className="text-xl text-gray-700" />
                 </Link>
             </div>
         </header>
