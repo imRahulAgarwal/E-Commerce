@@ -105,6 +105,9 @@ const Orders = () => {
 
     return (
         <div className="bg-white shadow-lg rounded-lg w-full">
+            <div className="flex justify-between items-center px-4 pt-4">
+                <h2 className="text-xl font-bold">Orders</h2>
+            </div>
             <div className="p-4">
                 <input
                     type="text"

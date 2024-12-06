@@ -27,6 +27,7 @@ import { login } from "../store/auth/adminAuthSlice";
 import LoadingPage from "../components/Loading/Loading";
 import AdminLayout from "../layout/AdminLayout";
 import ContactUs from "../pages/admin/ContactUs";
+import ProtectedRoute from "../components/admin/ProtectedRoute/ProtectedRoute";
 
 const AdminRouter = () => {
     const [loading, setLoading] = useState(true);
@@ -55,24 +56,150 @@ const AdminRouter = () => {
                     <>
                         <Route path="dashboard" element={<Dashboard />} />
                         <Route path="profile" element={<Profile />} />
-                        <Route path="customers" element={<Customers />} />
-                        <Route path="customers/:customerId" element={<Customer />} />
-                        <Route path="customers/add" element={<CustomerForm />} />
-                        <Route path="orders" element={<Orders />} />
-                        <Route path="orders/:orderId" element={<Order />} />
-                        <Route path="categories" element={<Categories />} />
-                        <Route path="products" element={<Products />} />
-                        <Route path="products/:productId" element={<Product />} />
-                        <Route path="products/add" element={<ProductForm />} />
-                        <Route path="products/edit/:productId" element={<ProductForm />} />
-                        <Route path="roles" element={<Roles />} />
-                        <Route path="roles/:roleId" element={<Role />} />
-                        <Route path="panel-users" element={<PanelUsers />} />
-                        <Route path="panel-users/:panelUserId" element={<PanelUser />} />
-                        <Route path="reports" element={<Reports />} />
-                        <Route path="audits" element={<Audits />} />
-                        <Route path="audits/:auditId" element={<Audit />} />
-                        <Route path="contact-us" element={<ContactUs />} />
+                        <Route
+                            path="customers"
+                            element={
+                                <ProtectedRoute permission="manage_customer">
+                                    <Customers />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="customers/:customerId"
+                            element={
+                                <ProtectedRoute permission="manage_customer">
+                                    <Customer />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="customers/add"
+                            element={
+                                <ProtectedRoute permission="manage_customer">
+                                    <CustomerForm />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="orders"
+                            element={
+                                <ProtectedRoute permission="manage_order">
+                                    <Orders />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="orders/:orderId"
+                            element={
+                                <ProtectedRoute permission="manage_order">
+                                    <Order />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="categories"
+                            element={
+                                <ProtectedRoute permission="manage_category">
+                                    <Categories />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="products"
+                            element={
+                                <ProtectedRoute permission="manage_product">
+                                    <Products />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="products/:productId"
+                            element={
+                                <ProtectedRoute permission="manage_product">
+                                    <Product />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="products/add"
+                            element={
+                                <ProtectedRoute permission="manage_product">
+                                    <ProductForm />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="products/edit/:productId"
+                            element={
+                                <ProtectedRoute permission="manage_product">
+                                    <ProductForm />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="roles"
+                            element={
+                                <ProtectedRoute permission="manage_role">
+                                    <Roles />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="roles/:roleId"
+                            element={
+                                <ProtectedRoute permission="manage_role">
+                                    <Role />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="panel-users"
+                            element={
+                                <ProtectedRoute permission="manage_panel_user">
+                                    <PanelUsers />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="panel-users/:panelUserId"
+                            element={
+                                <ProtectedRoute permission="manage_panel_user">
+                                    <PanelUser />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="reports"
+                            element={
+                                <ProtectedRoute permission="manage_report">
+                                    <Reports />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="audits"
+                            element={
+                                <ProtectedRoute permission="manage_audit">
+                                    <Audits />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="audits/:auditId"
+                            element={
+                                <ProtectedRoute permission="manage_audit">
+                                    <Audit />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="contact-us"
+                            element={
+                                <ProtectedRoute permission="manage_query">
+                                    <ContactUs />
+                                </ProtectedRoute>
+                            }
+                        />
                         <Route index element={<Navigate to="/panel/dashboard" />} />
                     </>
                 ) : (

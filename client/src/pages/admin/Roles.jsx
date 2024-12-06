@@ -107,7 +107,9 @@ const Roles = () => {
     const fetchRoles = async () => {
         setLoading(true);
         adminPanelService.getRoles().then(({ data }) => {
-            setRoles(data.roles);
+            if (data) {
+                setRoles(data.roles);
+            }
             setLoading(false);
         });
     };

@@ -4,11 +4,6 @@ let permissions = [
         uniqueName: "manage_product",
     },
     {
-        // To manage stock for each item
-        name: "Manage Stock",
-        uniqueName: "manage_stock",
-    },
-    {
         name: "Manage Customers",
         uniqueName: "manage_customer",
     },
@@ -23,6 +18,18 @@ let permissions = [
     {
         name: "Manage Panel Users",
         uniqueName: "manage_panel_user",
+    },
+    {
+        name: "Manage Reports",
+        uniqueName: "manage_report",
+    },
+    {
+        name: "Manage Contact Us",
+        uniqueName: "manage_query",
+    },
+    {
+        name: "Manage Audit",
+        uniqueName: "manage_audit",
     },
 ];
 

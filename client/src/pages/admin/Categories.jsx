@@ -87,10 +87,12 @@ const Categories = () => {
         setIsModalOpen(false); // Close the modal after submission
     };
 
-    const fetchRoles = async () => {
+    const fetchCategories = async () => {
         setLoading(true);
         adminPanelService.getCategories().then(({ data }) => {
-            setCategories(data.categories);
+            if (data) {
+                setCategories(data.categories);
+            }
             setLoading(false);
         });
     };
@@ -99,14 +101,14 @@ const Categories = () => {
         if (categoryToDelete) {
             const result = await adminPanelService.deleteCategory(categoryToDelete);
             if (result) {
-                fetchRoles();
+                fetchCategories();
             }
             closeConfirmationModal();
         }
     }, [categoryToDelete]);
 
     useEffect(() => {
-        fetchRoles();
+        fetchCategories();
     }, []);
 
     return (

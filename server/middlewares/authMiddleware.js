@@ -77,8 +77,16 @@ export async function isLoggedIn(req, res, next) {
     return next(new ErrorHandler("User not logged in", 401));
 }
 
-export function checkPermission(requiredPermissions) {
-    return async function (req, res, next) {};
+export function checkPermission(requiredPermission = "") {
+    return async function (req, res, next) {
+        const userPermissions = req.user.role.permissions.map((permission) => permission.uniqueName);
+
+        if (userPermissions.includes(requiredPermission)) {
+            return next();
+        }
+
+        return next(new ErrorHandler("Forbidden", 403));
+    };
 }
 
 // Middleware to check if the user is not logged in

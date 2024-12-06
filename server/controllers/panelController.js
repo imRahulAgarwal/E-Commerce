@@ -47,7 +47,12 @@ export const login = asyncHandler(async (req, res, next) => {
     const { email, password } = req.body;
 
     // Check if user exists
-    const user = await User.findOne({ email, isCustomer: false, isDeleted: false }).populate("role", "_id name");
+    const user = await User.findOne({ email, isCustomer: false, isDeleted: false }).populate({
+        path: "role",
+        populate: {
+            path: "permissions",
+        },
+    });
     if (!user) {
         return next(new ErrorHandler("Invalid credentials", 401));
     }
@@ -69,7 +74,14 @@ export const login = asyncHandler(async (req, res, next) => {
         success: true,
         message: "User logged in successful",
         data: {
-            user: { id: user._id, fName: user.fName, lName: user.lName, email: user.email, role: user.role.name },
+            user: {
+                id: user._id,
+                fName: user.fName,
+                lName: user.lName,
+                email: user.email,
+                role: user.role.name,
+                permissions: user.role.permissions.map((permission) => permission.uniqueName),
+            },
             token,
         },
     });
@@ -150,9 +162,20 @@ export const resetPassword = asyncHandler(async (req, res, next) => {
 // @route   GET /api/panel/profile
 export const getProfile = asyncHandler(async (req, res, next) => {
     let { fName, lName, email, number, role, id } = req.user;
-    return res
-        .status(200)
-        .json({ success: true, data: { user: { id, fName, lName, email, number, role: role.name } } });
+    return res.status(200).json({
+        success: true,
+        data: {
+            user: {
+                id,
+                fName,
+                lName,
+                email,
+                number,
+                role: role.name,
+                permissions: role.permissions.map((permission) => permission.uniqueName),
+            },
+        },
+    });
 });
 
 // @desc    Change password for logged-in panel user

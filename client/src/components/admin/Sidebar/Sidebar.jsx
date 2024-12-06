@@ -5,7 +5,6 @@ import {
     faUserFriends,
     faBox,
     faTags,
-    faWarehouse,
     faUserShield,
     faUsersCog,
     faChartLine,
@@ -15,25 +14,26 @@ import {
     faAddressBook,
 } from "@fortawesome/free-solid-svg-icons";
 import { NavLink } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import adminPanelService from "../../../api/admin/api-admin";
 import { logout } from "../../../store/auth/adminAuthSlice";
 
 const navLinks = [
-    { icon: faTachometerAlt, text: "Dashboard", path: "/panel/dashboard" },
-    { icon: faUserFriends, text: "Customers", path: "/panel/customers" },
-    { icon: faBox, text: "Orders", path: "/panel/orders" },
-    { icon: faList, text: "Categories", path: "/panel/categories" },
-    { icon: faTags, text: "Products", path: "/panel/products" },
-    { icon: faUserShield, text: "Roles", path: "/panel/roles" },
-    { icon: faUsersCog, text: "Panel Users", path: "/panel/panel-users" },
-    { icon: faChartLine, text: "Reports", path: "/panel/reports" },
-    { icon: faClipboardList, text: "Audits", path: "/panel/audits" },
-    { icon: faAddressBook, text: "Contact Us", path: "/panel/contact-us" },
+    { icon: faTachometerAlt, text: "Dashboard", path: "/panel/dashboard", permission: "" },
+    { icon: faUserFriends, text: "Customers", path: "/panel/customers", permission: "manage_customer" },
+    { icon: faBox, text: "Orders", path: "/panel/orders", permission: "manage_order" },
+    { icon: faList, text: "Categories", path: "/panel/categories", permission: "manage_product" },
+    { icon: faTags, text: "Products", path: "/panel/products", permission: "manage_product" },
+    { icon: faUserShield, text: "Roles", path: "/panel/roles", permission: "manage_role" },
+    { icon: faUsersCog, text: "Panel Users", path: "/panel/panel-users", permission: "manage_panel_user" },
+    { icon: faChartLine, text: "Reports", path: "/panel/reports", permission: "manage_report" },
+    { icon: faClipboardList, text: "Audits", path: "/panel/audits", permission: "manage_audit" },
+    { icon: faAddressBook, text: "Contact Us", path: "/panel/contact-us", permission: "manage_query" },
 ];
 
 const Sidebar = ({ isOpen }) => {
     const dispatch = useDispatch();
+    const { user } = useSelector((state) => state.adminAuth);
 
     const handleLogout = () => {
         adminPanelService.logout().then((data) => {
@@ -43,6 +43,9 @@ const Sidebar = ({ isOpen }) => {
         });
     };
 
+    const accessibleLinks = navLinks.filter(
+        (link) => link.permission === "" || user.permissions.includes(link.permission)
+    );
     return (
         <div
             className={`fixed top-0 border-r border-black-opacity-20 left-0 bottom-0 z-50 w-60 bg-white shadow-md transition-transform duration-300 transform ${
@@ -55,7 +58,7 @@ const Sidebar = ({ isOpen }) => {
 
             {/* Navigation Links */}
             <nav className="overflow-y-auto h-[calc(100vh-5rem)]">
-                {navLinks.map((link, index) => (
+                {accessibleLinks.map((link, index) => (
                     <NavLink
                         key={index}
                         to={link.path}
