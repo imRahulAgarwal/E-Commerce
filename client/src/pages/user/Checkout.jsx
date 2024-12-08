@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { useSelector, useDispatch } from "react-redux";
 import userService from "../../api/user/api";
@@ -6,6 +6,7 @@ import { setAddresses, setUserCart } from "../../store/auth/userAuthSlice";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import toastCss from "../../config/toast";
+import useScript from "../../hooks/useScript";
 
 const Checkout = () => {
     const dispatch = useDispatch();
@@ -14,7 +15,8 @@ const Checkout = () => {
     const [selectedAddress, setSelectedAddress] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 1024);
-
+    const scriptLoaded = useScript({ src: "https://checkout.razorpay.com/v1/checkout.js" });
+    console.log(scriptLoaded);
     const location = useLocation();
     const navigate = useNavigate();
     const products = location.state?.products || [];
@@ -41,10 +43,10 @@ const Checkout = () => {
         });
     };
 
-    const handleAddressModalClose = () => {
+    const handleAddressModalClose = useCallback(() => {
         setShowModal(false);
         reset();
-    };
+    }, []);
 
     // New function to handle payment
     const handlePayment = async () => {
@@ -69,7 +71,7 @@ const Checkout = () => {
                     key: response.data.key,
                     amount: response.data.order.amount,
                     currency: response.data.order.currency,
-                    name: "Website",
+                    name: "E-Commerce Store",
                     description: "Product Purchase",
                     order_id: response.data.order.id,
                     handler: async function (response) {
@@ -107,13 +109,19 @@ const Checkout = () => {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    if (!products.length) {
-        toast.error("Cannot access directly", toastCss);
-        return navigate("/shop");
-    }
+    useEffect(() => {
+        if (!products.length) {
+            toast.error("Cannot access directly", toastCss);
+            return navigate("/shop");
+        }
+    }, [products]);
 
     return (
         <div className="container mx-auto p-6">
+            <p className="text-xl font-medium mb-8 text-center">
+                Note: The payment gateway is in test-mode, use{" "}
+                <strong className="text-green-600">success@razorpay</strong> for transactions.
+            </p>
             {isLargeScreen ? (
                 <div className="grid grid-cols-2 gap-6">
                     {/* Address Section */}
@@ -190,13 +198,13 @@ const Checkout = () => {
                                 <span>₹{totalAmount}</span>
                             </div>
                             <button
-                                className={`w-full mt-4 px-6 py-2 text-white rounded ${
-                                    selectedAddress
+                                className={`w-full mt-4 px-6 py-2 rounded text-white ${
+                                    selectedAddress && scriptLoaded
                                         ? "bg-green-500 hover:bg-green-600"
                                         : "bg-gray-300 cursor-not-allowed"
                                 }`}
-                                onClick={handlePayment}
-                                disabled={!selectedAddress}>
+                                onClick={selectedAddress && scriptLoaded ? handlePayment : () => {}}
+                                disabled={!selectedAddress || !scriptLoaded}>
                                 Pay Now
                             </button>
                         </div>
@@ -288,13 +296,13 @@ const Checkout = () => {
                                     <span>₹{totalAmount}</span>
                                 </div>
                                 <button
-                                    className={`w-full mt-4 px-6 py-2 text-white rounded ${
-                                        selectedAddress
+                                    className={`w-full mt-4 px-6 py-2 rounded text-white ${
+                                        selectedAddress && scriptLoaded
                                             ? "bg-green-500 hover:bg-green-600"
                                             : "bg-gray-300 cursor-not-allowed"
                                     }`}
-                                    onClick={handlePayment}
-                                    disabled={!selectedAddress}>
+                                    onClick={selectedAddress && scriptLoaded ? handlePayment : () => {}}
+                                    disabled={!selectedAddress || !scriptLoaded}>
                                     Pay Now
                                 </button>
                             </div>

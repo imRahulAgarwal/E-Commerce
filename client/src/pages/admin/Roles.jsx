@@ -5,9 +5,9 @@ import { faEdit, faEye, faTrashAlt, faPlus } from "@fortawesome/free-solid-svg-i
 import adminPanelService from "../../api/admin/api-admin";
 import moment from "moment";
 import { Link } from "react-router-dom";
-import loadingImage from "../../assets/loading.gif";
 import RoleForm from "../../components/admin/RoleForm/RoleForm";
 import ConfirmationModal from "../../components/admin/ConfirmationModal/ConfirmationModal";
+import Loader from "../../components/Loader/Loader";
 
 const Roles = () => {
     const [roles, setRoles] = useState([]);
@@ -77,15 +77,15 @@ const Roles = () => {
         setCurrentRole(null);
     }, []);
 
-    const openConfirmationModal = (roleId) => {
+    const openConfirmationModal = useCallback((roleId) => {
         setRoleToDelete(roleId);
         setIsConfirmationOpen(true);
-    };
+    }, []);
 
-    const closeConfirmationModal = () => {
+    const closeConfirmationModal = useCallback(() => {
         setIsConfirmationOpen(false);
         setRoleToDelete(null);
-    };
+    }, []);
 
     const handleModalSubmit = async (bodyData) => {
         if (currentRole) {
@@ -106,12 +106,14 @@ const Roles = () => {
 
     const fetchRoles = async () => {
         setLoading(true);
-        adminPanelService.getRoles().then(({ data }) => {
-            if (data) {
-                setRoles(data.roles);
-            }
-            setLoading(false);
-        });
+        adminPanelService
+            .getRoles()
+            .then(({ data }) => {
+                if (data) {
+                    setRoles(data.roles);
+                }
+            })
+            .finally(() => setLoading(false));
     };
 
     const deleteRole = useCallback(async () => {
@@ -155,13 +157,7 @@ const Roles = () => {
                         {loading ? (
                             <tr>
                                 <td colSpan={columns.length} className="p-4">
-                                    <img
-                                        src={loadingImage}
-                                        width={40}
-                                        height={40}
-                                        alt="Loading GIF"
-                                        className="mx-auto"
-                                    />
+                                    <Loader />
                                 </td>
                             </tr>
                         ) : roles.length > 0 ? (
@@ -184,6 +180,7 @@ const Roles = () => {
                     </tbody>
                 </table>
             </div>
+
             {isModalOpen && (
                 <RoleForm
                     onClose={closeModal}
@@ -192,9 +189,9 @@ const Roles = () => {
                     permissions={permissions}
                 />
             )}
+
             {isConfirmationOpen && (
                 <ConfirmationModal
-                    isOpen={isConfirmationOpen}
                     onClose={closeConfirmationModal}
                     onConfirm={deleteRole}
                     message="Are you sure you want to delete this role?"

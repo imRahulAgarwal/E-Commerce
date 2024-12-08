@@ -4,10 +4,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEdit, faEye, faPlus, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
 import { Link } from "react-router-dom";
 import adminPanelService from "../../api/admin/api-admin";
-import loadingImage from "../../assets/loading.gif";
 import ProductForm from "../../components/admin/ProductForm/ProductForm";
 import ConfirmationModal from "../../components/admin/ConfirmationModal/ConfirmationModal";
 import useDebounce from "../../hooks/useDebounce";
+import Loader from "../../components/Loader/Loader";
 
 const Products = () => {
     const [search, setSearch] = useState("");
@@ -77,7 +77,6 @@ const Products = () => {
                 search: debouncedSearch,
             })
             .then(({ data }) => {
-                setLoading(false);
                 if (data) {
                     setPagination({
                         page: data.page,
@@ -87,7 +86,8 @@ const Products = () => {
                     });
                     setProducts(data.products);
                 }
-            });
+            })
+            .finally(() => setLoading(false));
     };
 
     const increasePageNo = () => {
@@ -116,15 +116,15 @@ const Products = () => {
         setCurrentProduct(null);
     }, []);
 
-    const openConfirmationModal = (productId) => {
+    const openConfirmationModal = useCallback((productId) => {
         setProductToDelete(productId);
         setIsConfirmationOpen(true);
-    };
+    }, []);
 
-    const closeConfirmationModal = () => {
+    const closeConfirmationModal = useCallback(() => {
         setIsConfirmationOpen(false);
         setProductToDelete(null);
-    };
+    }, []);
 
     const handleSubmit = async (bodyData) => {
         if (currentProduct) {
@@ -134,6 +134,7 @@ const Products = () => {
                 setProducts((prev) =>
                     prev.map((product) => (product._id === currentProduct._id ? data.product : product))
                 );
+                setCurrentProduct(null);
             }
         } else {
             // Add new product
@@ -208,13 +209,7 @@ const Products = () => {
                         {loading ? (
                             <tr>
                                 <td colSpan={columns.length} className="p-4">
-                                    <img
-                                        src={loadingImage}
-                                        width={40}
-                                        height={40}
-                                        alt="Loading GIF"
-                                        className="mx-auto"
-                                    />
+                                    <Loader />
                                 </td>
                             </tr>
                         ) : products.length > 0 ? (
@@ -275,6 +270,7 @@ const Products = () => {
                     </select>
                 </div>
             </div>
+
             {isModalOpen && (
                 <ProductForm
                     onClose={closeModal}
@@ -283,9 +279,9 @@ const Products = () => {
                     categories={categories}
                 />
             )}
+
             {isConfirmationOpen && (
                 <ConfirmationModal
-                    isOpen={isConfirmationOpen}
                     onClose={closeConfirmationModal}
                     onConfirm={deleteProduct}
                     message="Are you sure you want to delete this product?"

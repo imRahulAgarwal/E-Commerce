@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useReactTable, getCoreRowModel, flexRender } from "@tanstack/react-table";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import adminPanelService from "../../api/admin/api-admin";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { Link } from "react-router-dom";
 import useDebounce from "../../hooks/useDebounce";
-import loadingImage from "../../assets/loading.gif";
+import Loader from "../../components/Loader/Loader";
 
 const Customers = () => {
     const [customers, setCustomers] = useState([]);
@@ -60,7 +60,6 @@ const Customers = () => {
                 search: debouncedSearch,
             })
             .then(({ data }) => {
-                setLoading(false);
                 if (data) {
                     setPagination({
                         page: data.page,
@@ -70,7 +69,8 @@ const Customers = () => {
                     });
                     setCustomers(data.customers);
                 }
-            });
+            })
+            .finally(() => setLoading(false));
     };
 
     const increasePageNo = () => {
@@ -126,13 +126,7 @@ const Customers = () => {
                         {loading ? (
                             <tr>
                                 <td colSpan={columns.length} className="p-4">
-                                    <img
-                                        src={loadingImage}
-                                        width={40}
-                                        height={40}
-                                        alt="Loading GIF"
-                                        className="mx-auto"
-                                    />
+                                    <Loader />
                                 </td>
                             </tr>
                         ) : customers.length > 0 ? (

@@ -1,7 +1,7 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 
-const CategoryForm = ({ onClose, onSubmit, initialData = {}, permissions }) => {
+const CategoryForm = ({ onClose, onSubmit, initialData = {} }) => {
     const {
         register,
         handleSubmit,

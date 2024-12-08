@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import adminPanelService from "../../api/admin/api-admin";
-import loadingImage from "../../assets/loading.gif";
 import moment from "moment";
+import Loader from "../../components/Loader/Loader";
 
 const Audit = () => {
     const { auditId } = useParams();
@@ -10,12 +10,14 @@ const Audit = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        adminPanelService.getAudit(auditId).then(({ data }) => {
-            setLoading(false);
-            if (data) {
-                setAudit(data.audit);
-            }
-        });
+        adminPanelService
+            .getAudit(auditId)
+            .then(({ data }) => {
+                if (data) {
+                    setAudit(data.audit);
+                }
+            })
+            .finally(() => setLoading(false));
     }, [auditId]);
 
     return (
@@ -24,7 +26,7 @@ const Audit = () => {
 
             {loading ? (
                 <div className="mb-4">
-                    <img src={loadingImage} height={40} width={40} alt="Loading GIF" className="mx-auto" />
+                    <Loader />
                 </div>
             ) : audit ? (
                 <div className="pt-4 border-t border-blue-200">

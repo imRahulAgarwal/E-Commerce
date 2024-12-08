@@ -1,20 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import adminPanelService from "../../api/admin/api-admin";
-import loadingImage from "../../assets/loading.gif";
+import Loader from "../../components/Loader/Loader";
 
 const PanelUser = () => {
-    const { panelUserId } = useParams(); // Retrieve userId from URL params
-    const [userData, setUserData] = useState(null); // State to store user data
+    const { panelUserId } = useParams();
+    const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        adminPanelService.getPanelUser(panelUserId).then(async ({ data }) => {
-            setLoading(false);
-            if (data) {
-                setUserData(data.panelUser);
-            }
-        });
+        adminPanelService
+            .getPanelUser(panelUserId)
+            .then(async ({ data }) => {
+                if (data) {
+                    setUserData(data.panelUser);
+                }
+            })
+            .finally(() => setLoading(false));
     }, [panelUserId]);
 
     return (
@@ -23,7 +25,7 @@ const PanelUser = () => {
 
             {loading ? (
                 <div className="mb-4">
-                    <img src={loadingImage} height={40} width={40} alt="Loading GIF" className="mx-auto" />
+                    <Loader />
                 </div>
             ) : userData ? (
                 <div className="pt-4 border-t border-blue-200">

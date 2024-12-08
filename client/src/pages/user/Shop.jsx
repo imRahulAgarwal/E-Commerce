@@ -1,8 +1,9 @@
 import { faSearch, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import userService from "../../api/user/api";
 import { Link } from "react-router-dom";
+import Loader from "../../components/Loader/Loader";
 
 const Shop = () => {
     const [currentPage, setCurrentPage] = useState(1);
@@ -41,13 +42,13 @@ const Shop = () => {
     };
 
     // Clear search input and trigger search
-    const handleClearSearch = () => {
+    const handleClearSearch = useCallback(() => {
         setSearch("");
         setProducts([]);
         setCurrentPage(1);
-    };
+    });
 
-    const handleSort = (e) => {
+    const handleSort = useCallback((e) => {
         const sort = e.target.value;
         if (sort === "asc.price") {
             setSort("asc.price");
@@ -61,7 +62,7 @@ const Shop = () => {
         } else {
             setSort("");
         }
-    };
+    }, []);
 
     // Trigger search when search input changes
     useEffect(() => {
@@ -172,7 +173,7 @@ const Shop = () => {
                         </div>
                         {loading && (
                             <div className="text-center py-4">
-                                <span className="text-gray-500">Loading...</span>
+                                <Loader />
                             </div>
                         )}
                     </div>

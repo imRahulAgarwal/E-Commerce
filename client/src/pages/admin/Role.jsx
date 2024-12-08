@@ -2,18 +2,18 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import adminPanelService from "../../api/admin/api-admin";
 import moment from "moment";
-import loadingImage from "../../assets/loading.gif";
+import Loader from "../../components/Loader/Loader";
 
 const Role = () => {
-    const { roleId } = useParams(); // Retrieve roleId from URL params
-    const [roleData, setRoleData] = useState(null); // State to store role data
+    const { roleId } = useParams();
+    const [roleData, setRoleData] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        adminPanelService.getRole(roleId).then(({ data }) => {
-            setLoading(false);
-            setRoleData(data.role);
-        });
+        adminPanelService
+            .getRole(roleId)
+            .then(({ data }) => setRoleData(data.role))
+            .finally(() => setLoading(false));
     }, [roleId]);
 
     return (
@@ -22,7 +22,7 @@ const Role = () => {
 
             {loading ? (
                 <div className="mb-4">
-                    <img src={loadingImage} height={40} width={40} alt="Loading GIF" className="mx-auto" />
+                    <Loader />
                 </div>
             ) : roleData ? (
                 <div className="pt-4 border-t border-blue-200">

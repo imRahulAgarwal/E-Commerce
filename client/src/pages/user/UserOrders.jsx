@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import userService from "../../api/user/api";
 import { Link } from "react-router-dom";
 import moment from "moment";
+import Loader from "../../components/Loader/Loader";
 
 const UserOrders = () => {
     const [orders, setOrders] = useState([]);
@@ -113,7 +114,7 @@ const UserOrders = () => {
                                 onClick={loadMoreOrders}
                                 disabled={loading}
                                 className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-300 disabled:opacity-50">
-                                {loading ? "Loading..." : "Load More"}
+                                {loading ? <Loader /> : "Load More"}
                             </button>
                         </div>
                     )}

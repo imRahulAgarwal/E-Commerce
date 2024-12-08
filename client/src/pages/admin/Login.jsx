@@ -5,6 +5,7 @@ import { faEnvelope, faEye, faEyeSlash } from "@fortawesome/free-regular-svg-ico
 import adminPanelService from "../../api/admin/api-admin";
 import { useDispatch } from "react-redux";
 import { login } from "../../store/auth/adminAuthSlice";
+import { Link } from "react-router-dom";
 
 const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
@@ -88,6 +89,9 @@ const Login = () => {
                     }`}>
                     {isSubmitting ? "Submitting..." : "Login"}
                 </button>
+                <Link className="text-center text-blue-600 underline underline-offset-2" to="/panel/forgot-password">
+                    Forgot Password?
+                </Link>
             </form>
         </div>
     );

@@ -33,10 +33,10 @@ router.post("/login", authLimiter, isNotLoggedIn, controller.login);
 router.post("/forgot-password", authLimiter, isNotLoggedIn, controller.forgotPassword);
 router.post("/reset-password/:token", authLimiter, isNotLoggedIn, controller.resetPassword);
 
-router.use(limiter);
 router.use(isLoggedIn);
-
 router.get("/profile", controller.profile);
+
+router.use(limiter);
 router.patch("/profile", controller.updateProfile);
 router.post("/change-password", controller.changePassword);
 

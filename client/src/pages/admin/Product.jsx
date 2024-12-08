@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import adminPanelService from "../../api/admin/api-admin"; // Replace with actual service for fetching products
+import adminPanelService from "../../api/admin/api-admin";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEdit, faTrash, faPlus } from "@fortawesome/free-solid-svg-icons";
-import loadingImage from "../../assets/loading.gif";
 import ProductColourModal from "../../components/admin/ProductColourModal/ProductColourModal";
 import ProductSizeModal from "../../components/admin/ProductSizeModal/ProductSizeModal";
 import ConfirmationModal from "../../components/admin/ConfirmationModal/ConfirmationModal";
+import Loader from "../../components/Loader/Loader";
 
 const ProductDetails = () => {
     const { productId } = useParams();
@@ -20,58 +20,60 @@ const ProductDetails = () => {
     const [currentSize, setCurrentSize] = useState(null);
     const [colourId, setColourId] = useState("");
 
-    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false); // New state for confirmation modal
+    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
 
     const fetchProduct = () => {
-        adminPanelService.getProduct(productId).then(async ({ data }) => {
-            setLoading(false);
-            if (data) {
-                setProduct(data.product);
-            }
-        });
+        adminPanelService
+            .getProduct(productId)
+            .then(async ({ data }) => {
+                if (data) {
+                    setProduct(data.product);
+                }
+            })
+            .finally(() => setLoading(false));
     };
 
-    const closeConfirmationModal = () => {
+    const closeConfirmationModal = useCallback(() => {
         setIsConfirmationOpen(false);
         setColourToDelete("");
-    };
+    }, []);
 
     useEffect(() => {
         fetchProduct();
     }, [productId]);
 
-    const handleColourModalClose = () => {
+    const handleColourModalClose = useCallback(() => {
         setIsColourModalOpen(false);
         setCurrentColour(null);
-    };
+    }, []);
 
-    const handleSizeModalClose = () => {
+    const handleSizeModalClose = useCallback(() => {
         setIsSizeModalOpen(false);
         setCurrentSize(null);
         setColourId("");
-    };
+    }, []);
 
-    const handleSizeModalOpen = (colourId) => {
+    const handleSizeModalOpen = useCallback((colourId) => {
         setIsSizeModalOpen(true);
         setColourId(colourId);
-    };
+    }, []);
 
-    const handleEditSize = (colourId, size) => {
+    const handleEditSize = useCallback((colourId, size) => {
         setIsSizeModalOpen(true);
         setColourId(colourId);
         setCurrentSize(size);
-    };
+    }, []);
 
-    const handleEditColour = (colourId) => {
+    const handleEditColour = useCallback((colourId) => {
         const colourToEdit = product.colours.find((colour) => colour._id === colourId);
         setCurrentColour(colourToEdit);
         setIsColourModalOpen(true);
-    };
+    }, []);
 
-    const handleDeleteColour = async (colourId) => {
+    const handleDeleteColour = useCallback((colourId) => {
         setColourToDelete(colourId);
         setIsConfirmationOpen(true);
-    };
+    }, []);
 
     const deleteProduct = useCallback(async () => {
         if (colourToDelete) {
@@ -82,8 +84,6 @@ const ProductDetails = () => {
             closeConfirmationModal(); // Close the confirmation modal
         }
     }, [colourToDelete]);
-
-    const handleDeleteSize = async () => {};
 
     const handleProductColourSave = async (data) => {
         if (currentColour) {
@@ -111,7 +111,7 @@ const ProductDetails = () => {
 
             {loading ? (
                 <div className="mb-4">
-                    <img src={loadingImage} height={40} width={40} alt="Loading GIF" className="mx-auto" />
+                    <Loader />
                 </div>
             ) : product ? (
                 <div className="space-y-8">
@@ -251,7 +251,6 @@ const ProductDetails = () => {
 
             {isConfirmationOpen && (
                 <ConfirmationModal
-                    isOpen={isConfirmationOpen}
                     onClose={closeConfirmationModal}
                     onConfirm={deleteProduct}
                     message="Are you sure you want to delete this product?"

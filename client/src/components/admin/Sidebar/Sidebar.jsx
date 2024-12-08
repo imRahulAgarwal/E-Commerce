@@ -53,7 +53,7 @@ const Sidebar = ({ isOpen }) => {
             }`}>
             {/* Website Name */}
             <div className="flex items-center justify-center text-black font-semibold text-lg max-h-20 h-full border-b border-black-opacity-20">
-                Website Name
+                E-Commerce Store
             </div>
 
             {/* Navigation Links */}

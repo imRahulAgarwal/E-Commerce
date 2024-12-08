@@ -9,3 +9,6 @@ node_modules/
 
 # custom
 uploads/
+
+# build folders
+dist

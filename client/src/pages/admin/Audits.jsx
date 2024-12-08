@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useReactTable, getCoreRowModel, flexRender } from "@tanstack/react-table";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import adminPanelService from "../../api/admin/api-admin";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
 import moment from "moment";
 import useDebounce from "../../hooks/useDebounce";
-import loadingImage from "../../assets/loading.gif";
 import { Link } from "react-router-dom";
+import Loader from "../../components/Loader/Loader";
 
 const Audits = () => {
     const [audits, setAudits] = useState([]);
@@ -68,7 +68,6 @@ const Audits = () => {
                 search: debouncedSearch,
             })
             .then(({ data }) => {
-                setLoading(false);
                 if (data) {
                     setPagination({
                         page: data.page,
@@ -78,7 +77,8 @@ const Audits = () => {
                     });
                     setAudits(data.audits);
                 }
-            });
+            })
+            .finally(() => setLoading(false));
     };
 
     const increasePageNo = () => {
@@ -134,13 +134,7 @@ const Audits = () => {
                         {loading ? (
                             <tr>
                                 <td colSpan={columns.length} className="p-4">
-                                    <img
-                                        src={loadingImage}
-                                        width={40}
-                                        height={40}
-                                        alt="Loading GIF"
-                                        className="mx-auto"
-                                    />
+                                    <Loader />
                                 </td>
                             </tr>
                         ) : audits.length > 0 ? (

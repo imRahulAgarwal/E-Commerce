@@ -1,9 +1,6 @@
-// ConfirmationModal.js
 import React from "react";
 
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, message = "Are you sure you want to proceed?" }) => {
-    if (!isOpen) return null;
-
+const ConfirmationModal = ({ onClose, onConfirm, message = "Are you sure you want to proceed?" }) => {
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-[99999]">
             <div className="bg-white p-6 rounded-md shadow-lg max-w-sm w-full">

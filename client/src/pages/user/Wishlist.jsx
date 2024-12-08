@@ -74,4 +74,4 @@ const Wishlist = ({ isWishlistOpen, closeWishlist, navigateToShop }) => {
     );
 };
 
-export default Wishlist;
+export default React.memo(Wishlist);

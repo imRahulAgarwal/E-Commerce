@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { setUserCart, setUserWishlist } from "../../store/auth/userAuthSlice";
 import { toast } from "react-toastify";
 import toastCss from "../../config/toast";
+import Loader from "../../components/Loader/Loader";
 
 const Product = () => {
     const userWishlist = useSelector((state) => state.userAuth.wishlist);
@@ -68,13 +69,22 @@ const Product = () => {
     };
 
     useEffect(() => {
-        userService.getProduct(productId).then(({ data }) => {
-            setProduct(data.product);
-        });
+        userService
+            .getProduct(productId)
+            .then(({ data }) => {
+                if (data) {
+                    setProduct(data.product);
+                }
+            })
+            .finally(() => setLoading(false));
     }, [productId]);
 
-    if (!product._id) {
-        return null;
+    if (loading) {
+        return <Loader />;
+    }
+
+    if (!product?._id) {
+        return navigate("/shop");
     }
 
     return (

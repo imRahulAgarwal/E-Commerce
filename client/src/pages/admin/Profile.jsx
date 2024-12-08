@@ -24,8 +24,8 @@ const Profile = () => {
     };
 
     const handlePasswordSubmit = async (data) => {
-        adminPanelService.changePassword(data).then((data) => {
-            if (data) {
+        adminPanelService.changePassword(data).then((result) => {
+            if (result) {
                 dispatch(logout());
                 window.localStorage.removeItem("token");
             }

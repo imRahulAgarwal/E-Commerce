@@ -1,20 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import adminPanelService from "../../api/admin/api-admin";
-import loadingImage from "../../assets/loading.gif";
+import Loader from "../../components/Loader/Loader";
 
 const Customer = () => {
-    const { customerId } = useParams(); // Retrieve customerId from URL params
-    const [customerData, setCustomerData] = useState(null); // State to store customer data
+    const { customerId } = useParams();
+    const [customerData, setCustomerData] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        adminPanelService.getCustomer(customerId).then(({ data }) => {
-            setLoading(false);
-            if (data) {
-                setCustomerData(data.customer);
-            }
-        });
+        adminPanelService
+            .getCustomer(customerId)
+            .then(({ data }) => {
+                if (data) {
+                    setCustomerData(data.customer);
+                }
+            })
+            .finally(() => setLoading(false));
     }, [customerId]);
 
     return (
@@ -23,7 +25,7 @@ const Customer = () => {
 
             {loading ? (
                 <div className="mb-4">
-                    <img src={loadingImage} height={40} width={40} alt="Loading GIF" className="mx-auto" />
+                    <Loader />
                 </div>
             ) : customerData ? (
                 <div className="pt-4 border-t border-blue-200">

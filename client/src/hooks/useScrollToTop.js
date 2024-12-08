@@ -7,7 +7,7 @@ const useScrollToTop = () => {
     useEffect(() => {
         window.scrollTo({
             top: 0,
-            behavior: "smooth", // Enables smooth scrolling
+            behavior: "smooth",
         });
     }, [pathname]);
 };

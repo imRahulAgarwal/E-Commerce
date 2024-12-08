@@ -10,7 +10,7 @@ import {
     faChartLine,
 } from "@fortawesome/free-solid-svg-icons";
 
-const DashboardCard = ({ title, value, icon }) => {
+const DashboardCard = React.memo(({ title, value, icon }) => {
     return (
         <div className="bg-white shadow rounded-lg p-6 flex items-center space-x-4">
             <div className="text-3xl text-blue-500">
@@ -22,7 +22,7 @@ const DashboardCard = ({ title, value, icon }) => {
             </div>
         </div>
     );
-};
+});
 
 const Dashboard = () => {
     const [data, setData] = useState({});

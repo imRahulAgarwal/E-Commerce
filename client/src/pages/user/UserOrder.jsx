@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import userService from "../../api/user/api";
+import Loader from "../../components/Loader/Loader";
 
 const UserOrder = () => {
     const { orderId } = useParams();
     const [order, setOrder] = useState({});
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         userService
@@ -19,7 +21,11 @@ const UserOrder = () => {
     }, [orderId]);
 
     if (loading) {
-        return <h1 className="text-blue-500 text-2xl font-bold text-center py-10">Loading...</h1>;
+        return <Loader />;
+    }
+
+    if (!order?._id) {
+        return navigate("/orders");
     }
 
     return (

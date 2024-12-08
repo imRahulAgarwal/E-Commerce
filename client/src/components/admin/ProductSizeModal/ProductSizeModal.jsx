@@ -15,7 +15,7 @@ const ProductSizeModal = ({ onClose, initialData = {}, colourId, productId, onSa
             size: initialData.size || "",
             quantity: initialData.quantity || "",
             description: initialData.description || "",
-            isActive: initialData.isActive,
+            isActive: initialData.isActive || true,
         },
     });
 

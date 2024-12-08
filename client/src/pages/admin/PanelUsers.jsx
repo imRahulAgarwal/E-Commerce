@@ -5,9 +5,9 @@ import { faEdit, faEye, faPlus, faTrashAlt } from "@fortawesome/free-solid-svg-i
 import adminPanelService from "../../api/admin/api-admin";
 import { Link } from "react-router-dom";
 import useDebounce from "../../hooks/useDebounce";
-import loadingImage from "../../assets/loading.gif";
 import PanelUserForm from "../../components/admin/PanelUserForm/PanelUserForm";
 import ConfirmationModal from "../../components/admin/ConfirmationModal/ConfirmationModal";
+import Loader from "../../components/Loader/Loader";
 
 const PanelUsers = () => {
     const [panelUsers, setPanelUsers] = useState([]);
@@ -83,7 +83,6 @@ const PanelUsers = () => {
                 search: debouncedSearch,
             })
             .then(({ data }) => {
-                setLoading(false);
                 if (data) {
                     setPagination({
                         page: data.page,
@@ -93,7 +92,8 @@ const PanelUsers = () => {
                     });
                     setPanelUsers(data.panelUsers);
                 }
-            });
+            })
+            .finally(() => setLoading(false));
     };
 
     const increasePageNo = () => {
@@ -141,15 +141,15 @@ const PanelUsers = () => {
         setIsModalOpen(false); // Close the modal after submission
     };
 
-    const openConfirmationModal = (userId) => {
+    const openConfirmationModal = useCallback((userId) => {
         setUserToDelete(userId);
         setIsConfirmationOpen(true);
-    };
+    }, []);
 
-    const closeConfirmationModal = () => {
+    const closeConfirmationModal = useCallback(() => {
         setIsConfirmationOpen(false);
         setUserToDelete(null);
-    };
+    }, []);
 
     const deletePanelUser = useCallback(async () => {
         if (userToDelete) {
@@ -167,7 +167,7 @@ const PanelUsers = () => {
 
     useEffect(() => {
         adminPanelService.getRoles().then(({ data }) => {
-            if (data && data.roles) {
+            if (data) {
                 setRoles(data.roles);
             }
         });
@@ -214,13 +214,7 @@ const PanelUsers = () => {
                         {loading ? (
                             <tr>
                                 <td colSpan={columns.length} className="p-4">
-                                    <img
-                                        src={loadingImage}
-                                        width={40}
-                                        height={40}
-                                        alt="Loading GIF"
-                                        className="mx-auto"
-                                    />
+                                    <Loader />
                                 </td>
                             </tr>
                         ) : panelUsers.length > 0 ? (
@@ -281,6 +275,7 @@ const PanelUsers = () => {
                     </select>
                 </div>
             </div>
+
             {isModalOpen && (
                 <PanelUserForm
                     onClose={closeModal}
@@ -289,9 +284,9 @@ const PanelUsers = () => {
                     roles={roles}
                 />
             )}
+
             {isConfirmationOpen && (
                 <ConfirmationModal
-                    isOpen={isConfirmationOpen}
                     onClose={closeConfirmationModal}
                     onConfirm={deletePanelUser}
                     message="Are you sure you want to delete this panel user?"

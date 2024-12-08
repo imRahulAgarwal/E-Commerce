@@ -91,4 +91,4 @@ const Cart = ({ isCartOpen, closeCart, handleProceedToCheckout, navigateToShop }
     );
 };
 
-export default Cart;
+export default React.memo(Cart);

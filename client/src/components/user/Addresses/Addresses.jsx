@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
 import userService from "../../../api/user/api";
@@ -50,27 +50,27 @@ const Addresses = () => {
         }
     };
 
-    const openConfirmationModal = (addressId) => {
+    const openConfirmationModal = useCallback((addressId) => {
         setAddressToDelete(addressId);
         setIsConfirmationOpen(true);
-    };
+    }, []);
 
-    const closeConfirmationModal = () => {
+    const closeConfirmationModal = useCallback(() => {
         setIsConfirmationOpen(false);
         setAddressToDelete(null);
-    };
+    }, []);
 
-    const handleModalClose = () => {
+    const handleModalClose = useCallback(() => {
         setIsAddressModalOpen(false);
         setAddressToEdit(null);
         reset();
-    };
+    }, []);
 
-    const handleEditModal = (address) => {
+    const handleEditModal = useCallback((address) => {
         setAddressToEdit(address);
         setIsAddressModalOpen(true);
         formFields.map((field) => setValue(field.fieldName, address[field.fieldName]));
-    };
+    }, []);
 
     return (
         <>
@@ -154,7 +154,6 @@ const Addresses = () => {
 
             {isConfirmationOpen && (
                 <ConfirmationModal
-                    isOpen={isConfirmationOpen}
                     onClose={closeConfirmationModal}
                     onConfirm={deleteAddress}
                     message="Are you sure you want to delete the address?"

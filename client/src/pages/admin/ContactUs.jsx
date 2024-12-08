@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useReactTable, getCoreRowModel, flexRender } from "@tanstack/react-table";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye } from "@fortawesome/free-solid-svg-icons";
 import adminPanelService from "../../api/admin/api-admin";
-import loadingImage from "../../assets/loading.gif";
 import moment from "moment";
+import Loader from "../../components/Loader/Loader";
 
 const ContactUs = () => {
     const [loading, setLoading] = useState(true);
@@ -61,7 +61,6 @@ const ContactUs = () => {
                 order: sortOrder,
             })
             .then(({ data }) => {
-                setLoading(false);
                 if (data) {
                     setPagination({
                         page: data.page,
@@ -71,18 +70,19 @@ const ContactUs = () => {
                     });
                     setQueries(data.queries);
                 }
-            });
+            })
+            .finally(() => setLoading(false));
     };
 
-    const openModal = (query) => {
+    const openModal = useCallback((query) => {
         setSelectedQuery(query);
         setIsModalOpen(true);
-    };
+    }, []);
 
-    const closeModal = () => {
+    const closeModal = useCallback(() => {
         setSelectedQuery(null);
         setIsModalOpen(false);
-    };
+    }, []);
 
     const increasePageNo = () => {
         if (pagination.page < pagination.pages) {
@@ -129,13 +129,7 @@ const ContactUs = () => {
                         {loading ? (
                             <tr>
                                 <td colSpan={columns.length} className="p-4">
-                                    <img
-                                        src={loadingImage}
-                                        width={40}
-                                        height={40}
-                                        alt="Loading GIF"
-                                        className="mx-auto"
-                                    />
+                                    <Loader />
                                 </td>
                             </tr>
                         ) : queries.length > 0 ? (

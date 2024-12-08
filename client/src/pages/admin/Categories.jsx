@@ -3,9 +3,9 @@ import { useReactTable, getCoreRowModel, flexRender } from "@tanstack/react-tabl
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEdit, faTrashAlt, faPlus } from "@fortawesome/free-solid-svg-icons";
 import adminPanelService from "../../api/admin/api-admin";
-import loadingImage from "../../assets/loading.gif";
 import ConfirmationModal from "../../components/admin/ConfirmationModal/ConfirmationModal";
 import CategoryForm from "../../components/admin/CategoryForm/CategoryForm";
+import Loader from "../../components/Loader/Loader";
 
 const Categories = () => {
     const [categories, setCategories] = useState([]);
@@ -58,15 +58,15 @@ const Categories = () => {
         setCurrentCategory(null);
     }, []);
 
-    const openConfirmationModal = (roleId) => {
+    const openConfirmationModal = useCallback((roleId) => {
         setCategoryToDelete(roleId);
         setIsConfirmationOpen(true);
-    };
+    }, []);
 
-    const closeConfirmationModal = () => {
+    const closeConfirmationModal = useCallback(() => {
         setIsConfirmationOpen(false);
         setCategoryToDelete(null);
-    };
+    }, []);
 
     const handleModalSubmit = async (bodyData) => {
         if (currentCategory) {
@@ -89,12 +89,14 @@ const Categories = () => {
 
     const fetchCategories = async () => {
         setLoading(true);
-        adminPanelService.getCategories().then(({ data }) => {
-            if (data) {
-                setCategories(data.categories);
-            }
-            setLoading(false);
-        });
+        adminPanelService
+            .getCategories()
+            .then(({ data }) => {
+                if (data) {
+                    setCategories(data.categories);
+                }
+            })
+            .finally(() => setLoading(false));
     };
 
     const deleteRole = useCallback(async () => {
@@ -137,13 +139,7 @@ const Categories = () => {
                         {loading ? (
                             <tr>
                                 <td colSpan={columns.length} className="p-4">
-                                    <img
-                                        src={loadingImage}
-                                        width={40}
-                                        height={40}
-                                        alt="Loading GIF"
-                                        className="mx-auto"
-                                    />
+                                    <Loader />
                                 </td>
                             </tr>
                         ) : categories.length > 0 ? (
@@ -166,12 +162,13 @@ const Categories = () => {
                     </tbody>
                 </table>
             </div>
+
             {isModalOpen && (
                 <CategoryForm onClose={closeModal} onSubmit={handleModalSubmit} initialData={currentCategory || {}} />
             )}
+
             {isConfirmationOpen && (
                 <ConfirmationModal
-                    isOpen={isConfirmationOpen}
                     onClose={closeConfirmationModal}
                     onConfirm={deleteRole}
                     message="Are you sure you want to delete this category?"

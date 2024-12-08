@@ -12,7 +12,7 @@ const ProductForm = ({ onClose, onSubmit, initialData = {}, categories }) => {
         defaultValues: {
             name: initialData.name || "",
             description: initialData.description || "",
-            isActive: initialData.isActive,
+            isActive: initialData.isActive || true,
             price: initialData.price || "",
             categoryId: initialData.category?._id || "",
         },

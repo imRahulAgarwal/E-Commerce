@@ -19,12 +19,10 @@ import Order from "../pages/admin/Order";
 import Product from "../pages/admin/Product";
 import Reports from "../pages/admin/Reports";
 import Dashboard from "../pages/admin/Dashboard";
-import ProductForm from "../pages/admin/ProductForm";
-import CustomerForm from "../pages/admin/CustomerForm";
 import Categories from "../pages/admin/Categories";
 import adminPanelService from "../api/admin/api-admin";
 import { login } from "../store/auth/adminAuthSlice";
-import LoadingPage from "../components/Loading/Loading";
+import Loader from "../components/Loader/Loader";
 import AdminLayout from "../layout/AdminLayout";
 import ContactUs from "../pages/admin/ContactUs";
 import ProtectedRoute from "../components/admin/ProtectedRoute/ProtectedRoute";
@@ -46,7 +44,7 @@ const AdminRouter = () => {
     }, []);
 
     if (loading) {
-        return <LoadingPage />;
+        return <Loader />;
     }
 
     const adminRouter = createBrowserRouter(
@@ -69,14 +67,6 @@ const AdminRouter = () => {
                             element={
                                 <ProtectedRoute permission="manage_customer">
                                     <Customer />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="customers/add"
-                            element={
-                                <ProtectedRoute permission="manage_customer">
-                                    <CustomerForm />
                                 </ProtectedRoute>
                             }
                         />
@@ -117,22 +107,6 @@ const AdminRouter = () => {
                             element={
                                 <ProtectedRoute permission="manage_product">
                                     <Product />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="products/add"
-                            element={
-                                <ProtectedRoute permission="manage_product">
-                                    <ProductForm />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="products/edit/:productId"
-                            element={
-                                <ProtectedRoute permission="manage_product">
-                                    <ProductForm />
                                 </ProtectedRoute>
                             }
                         />

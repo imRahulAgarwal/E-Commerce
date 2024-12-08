@@ -26,7 +26,7 @@ const Footer = () => {
                 {/* Grid Layout */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div>
-                        <div className="font-bold text-2xl text-blue-400">Website</div>
+                        <div className="font-bold text-2xl text-blue-400">E-Commerce Store</div>
                         <p className="mt-2 text-gray-400 text-sm">The best place to shop and explore.</p>
                     </div>
 
@@ -67,11 +67,11 @@ const Footer = () => {
 
                 {/* All Rights Reserved */}
                 <div className="mt-8 text-center text-sm text-gray-400">
-                    &copy; {new Date().getFullYear()} Website. All Rights Reserved.
+                    &copy; {new Date().getFullYear()} E-Commerce Store. All Rights Reserved.
                 </div>
             </div>
         </footer>
     );
 };
 
-export default Footer;
+export default React.memo(Footer);

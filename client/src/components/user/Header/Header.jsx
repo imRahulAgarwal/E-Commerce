@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faBars,
@@ -44,15 +44,15 @@ const Header = () => {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    const handleLogout = () => {
+    const handleLogout = useCallback(() => {
         userService.logout().then((data) => {
             if (data) {
                 dispatch(userLogout());
             }
         });
-    };
+    }, [dispatch]);
 
-    const clearSearch = () => setSearchQuery("");
+    const clearSearch = useCallback(() => setSearchQuery(""), []);
 
     const searchProducts = () => {
         userService.getProducts({ limit: 5, search: searchQuery }).then(({ data }) => {
@@ -74,17 +74,20 @@ const Header = () => {
         return () => clearTimeout(delayDebounce);
     }, [searchQuery]);
 
-    const navigateToShop = () => {
+    const navigateToShop = useCallback(() => {
         navigate("/shop");
-    };
+    }, []);
 
-    const handleProceedToCheckout = () => {
+    const toggleCart = useCallback(() => setIsCartOpen((prev) => !prev), []);
+    const toggleWishlist = useCallback(() => setIsWishlistOpen((prev) => !prev), []);
+
+    const handleProceedToCheckout = useCallback(() => {
         if (cart.length) {
             navigate("/checkout", { state: { products: cart, isBuyNow: false } });
-            setIsCartOpen(false);
+            toggleCart();
             setIsOffCanvasOpen(false);
         }
-    };
+    }, [cart.length]);
 
     useEffect(() => {
         function handleClickOutside(event) {
@@ -102,8 +105,7 @@ const Header = () => {
         <header className="sticky left-0 right-0 top-0 bg-white shadow-md px-4 z-[9999]">
             <div className="container mx-auto flex flex-col md:flex-row items-center justify-between min-h-20 h-auto max-md:py-4">
                 <div className="flex items-center justify-between w-full md:w-auto">
-                    <div className="font-bold text-2xl text-gray-800">Website</div>
-                    <Cart />
+                    <div className="font-bold text-2xl text-gray-800">E-Commerce Store</div>
                     {!isMdScreen && (
                         <button className="text-gray-600 focus:outline-none" onClick={() => setIsOffCanvasOpen(true)}>
                             <FontAwesomeIcon icon={faBars} className="text-2xl" />
@@ -230,7 +232,7 @@ const Header = () => {
                             {userLoginStatus ? (
                                 <button
                                     className="text-gray-600 hover:text-blue-500 transition relative"
-                                    onClick={() => setIsCartOpen(true)}>
+                                    onClick={toggleCart}>
                                     <FontAwesomeIcon icon={faShoppingBag} className="text-2xl" />
                                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center">
                                         {cart?.reduce((prev, current) => prev + current.quantity, 0)}
@@ -247,7 +249,7 @@ const Header = () => {
                             {userLoginStatus ? (
                                 <button
                                     className="mr-auto block text-gray-700 font-medium hover:text-blue-500 transition relative"
-                                    onClick={() => setIsWishlistOpen(true)}>
+                                    onClick={toggleWishlist}>
                                     <FontAwesomeIcon icon={faHeart} className="text-2xl" />
                                 </button>
                             ) : (
@@ -341,7 +343,7 @@ const Header = () => {
 
                             <button
                                 className="mr-auto block text-gray-700 font-medium hover:text-blue-500 transition relative"
-                                onClick={() => setIsCartOpen(true)}>
+                                onClick={toggleCart}>
                                 <FontAwesomeIcon icon={faShoppingBag} className="text-2xl" />
                                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center">
                                     {cart?.reduce((prev, current) => prev + current.quantity, 0)}
@@ -355,24 +357,20 @@ const Header = () => {
                     <div
                         className="fixed inset-0 bg-black bg-opacity-50 z-40"
                         onClick={() =>
-                            isCartOpen
-                                ? setIsCartOpen(false)
-                                : isWishlistOpen
-                                ? setIsWishlistOpen(false)
-                                : setIsOffCanvasOpen(false)
+                            isCartOpen ? toggleCart() : isWishlistOpen ? toggleWishlist() : setIsOffCanvasOpen(false)
                         }></div>
                 )}
 
                 <Cart
                     isCartOpen={isCartOpen}
-                    closeCart={() => setIsCartOpen(false)}
+                    closeCart={toggleCart}
                     navigateToShop={navigateToShop}
                     handleProceedToCheckout={handleProceedToCheckout}
                 />
 
                 <Wishlist
                     isWishlistOpen={isWishlistOpen}
-                    closeWishlist={() => setIsWishlistOpen(false)}
+                    closeWishlist={toggleWishlist}
                     navigateToShop={navigateToShop}
                 />
             </div>

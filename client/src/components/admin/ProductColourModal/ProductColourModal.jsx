@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from "@fortawesome/free-solid-svg-icons";
 import { useForm } from "react-hook-form";
 
-const ProductColourModal = ({ onClose, initialData, productId, onSave }) => {
+const ProductColourModal = ({ onClose, initialData, onSave }) => {
     const [mainImage, setMainImage] = useState(null);
     const [otherImages, setOtherImages] = useState([]); // Start with an empty array for other images
     const [removeImages, setRemoveImages] = useState([]);
