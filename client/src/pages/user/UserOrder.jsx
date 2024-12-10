@@ -2,12 +2,14 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import userService from "../../api/user/api";
 import Loader from "../../components/Loader/Loader";
+import moment from "moment-timezone";
 
 const UserOrder = () => {
     const { orderId } = useParams();
     const [order, setOrder] = useState({});
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     useEffect(() => {
         userService
@@ -53,7 +55,9 @@ const UserOrder = () => {
                         </div>
                         <div>
                             <p className="text-gray-500 font-medium">Order Place Time:</p>
-                            <p className="text-base sm:text-xl font-bold">{order.createdAt}</p>
+                            <p className="text-base sm:text-xl font-bold">
+                                {moment(order.createdAt).tz(timezone).format("DD-MM-YYYY, hh:mm A")}
+                            </p>
                         </div>
                     </div>
 
@@ -69,7 +73,9 @@ const UserOrder = () => {
                         </div>
                         <div>
                             <p className="text-gray-500 font-medium">Payment Time:</p>
-                            <p className="text-base sm:text-xl font-bold text-gray-800">{order.paymentDateTime}</p>
+                            <p className="text-base sm:text-xl font-bold text-gray-800">
+                                {moment(order.paymentDateTime).tz(timezone).format("DD-MM-YYYY, hh:mm A")}
+                            </p>
                         </div>
                     </div>
                 </div>

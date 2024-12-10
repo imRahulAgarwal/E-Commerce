@@ -30,10 +30,10 @@ import Category from "../models/category.js";
 import categorySchema from "../schemas/categorySchema.js";
 import getAggregationStages from "../utils/getAggregationStages.js";
 import ContactUs from "../models/contact-us.js";
-import moment from "moment-timezone";
+import moment from "moment";
 import { Types } from "mongoose";
 const DOMAIN = process.env.DOMAIN;
-const FRONTEND_DOMAIN = process.env.FRONTEND_DOMAIN;
+const ADMIN_PANEL_RESET_PASSWORD_URL = process.env.ADMIN_PANEL_RESET_PASSWORD_URL;
 const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD;
 
 // Authentication and Password Reset
@@ -111,7 +111,7 @@ export const forgotPassword = asyncHandler(async (req, res, next) => {
     await user.save();
 
     // Send reset email
-    const resetUrl = `${FRONTEND_DOMAIN}${resetToken}`;
+    const resetUrl = `${ADMIN_PANEL_RESET_PASSWORD_URL}${resetToken}`;
 
     await sendEmail({
         to: user.email,
@@ -213,14 +213,14 @@ export const changePassword = asyncHandler(async (req, res, next) => {
 export const getDashboard = asyncHandler(async (req, res, next) => {
     const todayOrders = await Order.countDocuments({
         paymentStatus: "Completed",
-        paymentDateTime: { $gte: moment().startOf("day").toDate(), $lt: moment().endOf("day").toDate() },
+        paymentDateTime: { $gte: moment().utc().startOf("day").toDate(), $lt: moment().utc().endOf("day").toDate() },
     });
     const totalOrders = await Order.countDocuments({ paymentStatus: "Completed" });
 
     const todayCustomers = await User.countDocuments({
         isCustomer: true,
         isDeleted: false,
-        createdAt: { $gte: moment().startOf("day").toDate(), $lt: moment().endOf("day").toDate() },
+        createdAt: { $gte: moment().utc().startOf("day").toDate(), $lt: moment().utc().endOf("day").toDate() },
     });
     const totalCustomers = await User.countDocuments({ isCustomer: true, isDeleted: false });
 
@@ -229,8 +229,8 @@ export const getDashboard = asyncHandler(async (req, res, next) => {
             $match: {
                 paymentStatus: "Completed",
                 paymentDateTime: {
-                    $gte: moment().startOf("day").toDate(),
-                    $lt: moment().endOf("day").toDate(),
+                    $gte: moment().utc().startOf("day").toDate(),
+                    $lt: moment().utc().endOf("day").toDate(),
                 },
             },
         },
@@ -477,24 +477,24 @@ export const getOrderById = asyncHandler(async (req, res, next) => {
             },
         },
         { $unwind: "$category" },
-        {
-            $addFields: {
-                createdAt: {
-                    $dateToString: {
-                        format: "%d-%m-%Y, %H:%M",
-                        date: "$createdAt",
-                        timezone: "Asia/Kolkata",
-                    },
-                },
-                paymentDateTime: {
-                    $dateToString: {
-                        format: "%d-%m-%Y, %H:%M",
-                        date: "$paymentDateTime",
-                        timezone: "Asia/Kolkata",
-                    },
-                },
-            },
-        },
+        // {
+        //     $addFields: {
+        //         createdAt: {
+        //             $dateToString: {
+        //                 format: "%d-%m-%Y, %H:%M",
+        //                 date: "$createdAt",
+        //                 timezone: "Asia/Kolkata",
+        //             },
+        //         },
+        //         paymentDateTime: {
+        //             $dateToString: {
+        //                 format: "%d-%m-%Y, %H:%M",
+        //                 date: "$paymentDateTime",
+        //                 timezone: "Asia/Kolkata",
+        //             },
+        //         },
+        //     },
+        // },
         {
             $group: {
                 _id: "$_id",

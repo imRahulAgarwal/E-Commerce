@@ -3,7 +3,7 @@ import { useReactTable, getCoreRowModel, flexRender } from "@tanstack/react-tabl
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEdit, faEye, faTrashAlt, faPlus } from "@fortawesome/free-solid-svg-icons";
 import adminPanelService from "../../api/admin/api-admin";
-import moment from "moment";
+import moment from "moment-timezone";
 import { Link } from "react-router-dom";
 import RoleForm from "../../components/admin/RoleForm/RoleForm";
 import ConfirmationModal from "../../components/admin/ConfirmationModal/ConfirmationModal";
@@ -17,12 +17,13 @@ const Roles = () => {
     const [currentRole, setCurrentRole] = useState(null); // For editing role
     const [isConfirmationOpen, setIsConfirmationOpen] = useState(false); // For delete confirmation
     const [roleToDelete, setRoleToDelete] = useState(null); // Track role to delete
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     const columns = [
         { header: "Role Name", accessorKey: "name" },
         {
             header: "Created At",
-            accessorFn: (data, index) => moment(data.createdAt).format("DD.MM.YYYY, hh:mm A"),
+            accessorFn: (data, index) => moment(data.createdAt).tz(timezone).format("DD.MM.YYYY, hh:mm A"),
         },
         {
             header: "Actions",

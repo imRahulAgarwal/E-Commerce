@@ -4,7 +4,7 @@ import UserPermission from "../models/permission.js";
 import Init from "../models/init.js";
 import permissions from "../data/permissions.js";
 import { hashPassword } from "./password.js";
-import moment from "moment-timezone";
+import moment from "moment";
 
 async function initializeProject() {
     try {
@@ -19,7 +19,7 @@ async function initializeProject() {
             await Init.updateOne({ actionName: "app_init" }, { isCompleted: true, lastPerformedAt: new Date() });
             console.log("Initialization complete");
         } else {
-            console.log("Already initialized on:", moment(result.lastPerformedAt).format("DD-MM-YYYY, HH:mm"));
+            console.log("Already initialized on:", moment(result.lastPerformedAt).utc().format("DD-MM-YYYY, HH:mm"));
         }
     } catch (error) {
         process.exit(1);

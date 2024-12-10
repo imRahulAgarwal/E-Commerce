@@ -2,11 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import adminPanelService from "../../api/admin/api-admin";
 import Loader from "../../components/Loader/Loader";
+import moment from "moment-timezone";
 
 const Order = () => {
     const { orderId } = useParams();
     const [loading, setLoading] = useState(true);
     const [order, setOrder] = useState(null);
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     useEffect(() => {
         adminPanelService
@@ -50,7 +52,9 @@ const Order = () => {
                                 </div>
                                 <div>
                                     <p className="text-gray-500 font-medium">Order Place Time:</p>
-                                    <p className="text-base sm:text-xl font-bold">{order.createdAt}</p>
+                                    <p className="text-base sm:text-xl font-bold">
+                                        {moment(order.createdAt).tz(timezone).format("DD-MM-YYYY, hh:mm A")}
+                                    </p>
                                 </div>
                             </div>
 
@@ -71,7 +75,7 @@ const Order = () => {
                                 <div>
                                     <p className="text-gray-500 font-medium">Payment Time:</p>
                                     <p className="text-base sm:text-xl font-bold text-gray-800">
-                                        {order.paymentDateTime}
+                                        {moment(order.paymentDateTime).tz(timezone).format("DD-MM-YYYY, hh:mm A")}
                                     </p>
                                 </div>
                             </div>

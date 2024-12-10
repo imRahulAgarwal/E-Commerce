@@ -23,12 +23,11 @@ import Razorpay from "razorpay";
 import { createHmac } from "crypto";
 import profileSchema from "../schemas/profile.js";
 import Product from "../models/product.js";
-import moment from "moment-timezone";
+import moment from "moment";
 import contactUsSchema from "../schemas/contactUs.js";
-import { writeFileSync } from "fs";
 
 const DOMAIN = process.env.DOMAIN;
-const FRONTEND_USER_DOMAIN = process.env.FRONTEND_USER_DOMAIN;
+const USER_RESET_PASSWORD_URL = process.env.USER_RESET_PASSWORD_URL;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 
@@ -138,7 +137,7 @@ export const forgotPassword = asyncHandler(async (req, res, next) => {
     await user.save();
 
     // Send reset email
-    const resetUrl = `${FRONTEND_USER_DOMAIN}${resetToken}`;
+    const resetUrl = `${USER_RESET_PASSWORD_URL}${resetToken}`;
 
     await sendEmail({
         to: user.email,
@@ -767,24 +766,24 @@ export const readOrder = asyncHandler(async (req, res, next) => {
             },
         },
         { $unwind: "$category" },
-        {
-            $addFields: {
-                createdAt: {
-                    $dateToString: {
-                        format: "%d-%m-%Y, %H:%M",
-                        date: "$createdAt",
-                        timezone: "Asia/Kolkata",
-                    },
-                },
-                paymentDateTime: {
-                    $dateToString: {
-                        format: "%d-%m-%Y, %H:%M",
-                        date: "$paymentDateTime",
-                        timezone: "Asia/Kolkata",
-                    },
-                },
-            },
-        },
+        // {
+        //     $addFields: {
+        //         createdAt: {
+        //             $dateToString: {
+        //                 format: "%d-%m-%Y, %H:%M",
+        //                 date: "$createdAt",
+        //                 timezone: "Asia/Kolkata",
+        //             },
+        //         },
+        //         paymentDateTime: {
+        //             $dateToString: {
+        //                 format: "%d-%m-%Y, %H:%M",
+        //                 date: "$paymentDateTime",
+        //                 timezone: "Asia/Kolkata",
+        //             },
+        //         },
+        //     },
+        // },
         {
             $group: {
                 _id: "$_id",
@@ -1329,7 +1328,7 @@ export const featuredProducts = asyncHandler(async (req, res, next) => {
 });
 
 export const newProducts = asyncHandler(async (req, res, next) => {
-    const recentThreshold = moment().subtract(7, "days").toDate();
+    const recentThreshold = moment().utc().subtract(7, "days").toDate();
 
     const products = await ProductColour.aggregate([
         {

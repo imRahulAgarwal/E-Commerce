@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import adminPanelService from "../../api/admin/api-admin";
-import moment from "moment";
+import moment from "moment-timezone";
 import Loader from "../../components/Loader/Loader";
 
 const Audit = () => {
     const { auditId } = useParams();
     const [audit, setAudit] = useState(null);
     const [loading, setLoading] = useState(true);
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     useEffect(() => {
         adminPanelService
@@ -53,7 +54,7 @@ const Audit = () => {
                         </p>
                         <p className="text-lg">
                             <span className="font-medium text-blue-700">Created At:</span>{" "}
-                            {moment(audit.createdAt).format("DD MMMM YYYY, hh:mm A")}
+                            {moment(audit.createdAt).tz(timezone).format("DD MMMM YYYY, hh:mm A")}
                         </p>
                         <p className="text-lg">
                             <span className="font-medium text-blue-700">Changes:</span> {audit.changes.documentId}

@@ -3,7 +3,7 @@ import { useReactTable, getCoreRowModel, flexRender } from "@tanstack/react-tabl
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import adminPanelService from "../../api/admin/api-admin";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
-import moment from "moment";
+import moment from "moment-timezone";
 import useDebounce from "../../hooks/useDebounce";
 import { Link } from "react-router-dom";
 import Loader from "../../components/Loader/Loader";
@@ -15,6 +15,7 @@ const Orders = () => {
     const [sorting, setSorting] = useState([]);
     const [search, setSearch] = useState("");
     const debouncedSearch = useDebounce(search, 300);
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     const columns = [
         { header: "Razorpay Order ID", accessorKey: "razorpay_order_id", enableSorting: false },
@@ -32,7 +33,7 @@ const Orders = () => {
         },
         {
             header: "Action Time",
-            accessorFn: (data, index) => moment(data.createdAt).format("DD.MM.YYYY hh:mm A"),
+            accessorFn: (data, index) => moment(data.createdAt).tz(timezone).format("DD.MM.YYYY hh:mm A"),
             id: "createdAt",
         },
         {

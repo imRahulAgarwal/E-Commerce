@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import adminPanelService from "../../api/admin/api-admin";
-import moment from "moment";
+import moment from "moment-timezone";
 import Loader from "../../components/Loader/Loader";
 
 const Role = () => {
     const { roleId } = useParams();
     const [roleData, setRoleData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     useEffect(() => {
         adminPanelService
@@ -41,7 +42,7 @@ const Role = () => {
                             )}
                             <p className="text-lg">
                                 <span className="font-medium text-blue-700">Created At:</span>{" "}
-                                {moment(roleData.createdAt).format("DD.MM.YYYY, hh:mm A")}
+                                {moment(roleData.createdAt).tz(timezone).format("DD.MM.YYYY, hh:mm A")}
                             </p>
                             <p className="text-lg">
                                 <span className="font-medium text-blue-700">Dynamic Role:</span>{" "}

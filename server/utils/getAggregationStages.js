@@ -1,4 +1,4 @@
-import moment from "moment-timezone";
+import moment from "moment";
 
 const getAggregationStages = (type, dateField) => {
     let query = {
@@ -13,10 +13,10 @@ const getAggregationStages = (type, dateField) => {
 
     switch (type) {
         case "7days":
-            const startDate = moment().subtract(7, "days").startOf("day").toDate();
+            const startDate = moment().utc().subtract(7, "days").startOf("day").toDate();
 
             query = {
-                matchStage: { $match: { [dateField]: { $gte: startDate, $lte: moment().toDate() } } },
+                matchStage: { $match: { [dateField]: { $gte: startDate, $lte: moment().utc().toDate() } } },
                 groupStage: {
                     _id: {
                         sortId: { $dateToString: { format: "%Y-%m-%d", date: `$${dateField}` } },

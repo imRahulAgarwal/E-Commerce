@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useCallback } from "react";
 import userService from "../../api/user/api";
 import { Link } from "react-router-dom";
-import moment from "moment";
+import moment from "moment-timezone";
 import Loader from "../../components/Loader/Loader";
 
 const UserOrders = () => {
     const [orders, setOrders] = useState([]);
     const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, pages: 0 });
     const [loading, setLoading] = useState(false);
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     const fetchOrders = useCallback(async (page = 1, limit = 10) => {
         setLoading(true);
@@ -55,7 +56,7 @@ const UserOrders = () => {
                                     <div className="flex flex-col gap-1">
                                         <p className="text-base">Order Date</p>
                                         <p className="bg-gray-200 text-gray-700 rounded px-3 py-1 font-semibold">
-                                            {moment(order.createdAt).format("DD.MM.YYYY, hh:mm A")}
+                                            {moment(order.createdAt).tz(timezone).format("DD.MM.YYYY, hh:mm A")}
                                         </p>
                                     </div>
                                     <div className="flex flex-col gap-1">

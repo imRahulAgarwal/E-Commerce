@@ -1,5 +1,3 @@
-// utils/sendEmail.js
-
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
@@ -8,7 +6,7 @@ dotenv.config();
 const sendEmail = async ({ to, subject, text }) => {
     let transporter;
 
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "DEVELOPMENT") {
         // Create Ethereal test account transporter in development
         const testAccount = await nodemailer.createTestAccount();
         transporter = nodemailer.createTransport({
@@ -41,7 +39,7 @@ const sendEmail = async ({ to, subject, text }) => {
     // Send the email
     const info = await transporter.sendMail(mailOptions);
 
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "DEVELOPMENT") {
         console.log("Preview URL:", nodemailer.getTestMessageUrl(info));
     }
 };

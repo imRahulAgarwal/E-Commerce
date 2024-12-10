@@ -4,9 +4,9 @@ import "winston-daily-rotate-file";
 // Configure daily rotate file transport
 const transport = new winston.transports.DailyRotateFile({
     filename: "logs/%DATE%-error.log",
-    datePattern: "DD_MM_YYYY", // Creates a new file every minute
+    datePattern: "DD_MM_YYYY",
     level: "error",
-    zippedArchive: true, // Compresses older files to save space
+    zippedArchive: true,
     maxSize: "20m",
 });
 

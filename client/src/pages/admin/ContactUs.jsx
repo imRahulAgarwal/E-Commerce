@@ -3,7 +3,7 @@ import { useReactTable, getCoreRowModel, flexRender } from "@tanstack/react-tabl
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye } from "@fortawesome/free-solid-svg-icons";
 import adminPanelService from "../../api/admin/api-admin";
-import moment from "moment";
+import moment from "moment-timezone";
 import Loader from "../../components/Loader/Loader";
 
 const ContactUs = () => {
@@ -13,6 +13,7 @@ const ContactUs = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedQuery, setSelectedQuery] = useState(null);
     const [pagination, setPagination] = useState({ page: 1, total: 0, pages: 1, limit: 10 });
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     const columns = [
         { header: "Name", accessorKey: "name" },
@@ -20,7 +21,7 @@ const ContactUs = () => {
         { header: "Number", accessorKey: "number" },
         {
             header: "Created Time",
-            accessorFn: (data) => moment(data.createdAt).format("DD-MM-YYYY, hh:mm A"),
+            accessorFn: (data) => moment(data.createdAt).tz(timezone).format("DD-MM-YYYY, hh:mm A"),
             id: "createdAt",
         },
         {
@@ -214,7 +215,7 @@ const ContactUs = () => {
                             </div>
                             <p>
                                 <strong>Created At:</strong>{" "}
-                                {moment(selectedQuery.createdAt).format("DD-MM-YYYY, hh:mm A")}
+                                {moment(selectedQuery.createdAt).tz(timezone).format("DD-MM-YYYY, hh:mm A")}
                             </p>
                         </div>
                         <div className="flex justify-end mt-4">
