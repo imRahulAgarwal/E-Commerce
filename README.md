@@ -1,6 +1,6 @@
-# 🛒 E-Commerce Website (MERN Stack)
+# E-Commerce Website (MERN Stack)
 
-## 📋 Table of Contents
+## Table of Contents
 
 1. [Overview](#overview)
 2. [Tech Stack and Libraries](#tech-stack-and-libraries)
@@ -17,13 +17,13 @@
 
 ---
 
-## 📝 Overview
+## Overview
 
 A fully functional e-commerce website developed using the **MERN Stack** (MongoDB, Express, React, Node.js). This project combines a dynamic **frontend** with a robust **backend** to deliver an optimized and feature-rich user experience.
 
 ---
 
-## 🛠️ Tech Stack and Libraries
+## Tech Stack and Libraries
 
 ### **Frontend**
 
@@ -57,7 +57,7 @@ A fully functional e-commerce website developed using the **MERN Stack** (MongoD
 
 ---
 
-## 🛠️ Installation
+## Installation
 
 ### 🔹 Prerequisites
 
@@ -164,7 +164,7 @@ Ensure the following are installed on your system:
 
 ---
 
-## 🌐 Live Demo
+## Live Demo
 
 Check out the live version of the application:
 
@@ -173,7 +173,7 @@ Check out the live version of the application:
 
 ---
 
-## ⚙️ Application Features
+## Application Features
 
 ### **Frontend Features**
 
@@ -219,7 +219,7 @@ Check out the live version of the application:
 
 ---
 
-## ⚠️ Payments Disclaimer
+## Payments Disclaimer
 
 The payment system in this application is configured in **test mode** using Razorpay. Transactions are simulated for development and testing purposes and are not processed in a live environment.
 
@@ -227,7 +227,7 @@ The payment system in this application is configured in **test mode** using Razo
 
 ---
 
-## 📬 Contact
+## Contact
 
 -   **Email:** [imagarwal05@gmail.com](mailto:imagarwal05@gmail.com)
 -   **GitHub:** [imRahulAgarwal](https://github.com/imRahulAgarwal)
