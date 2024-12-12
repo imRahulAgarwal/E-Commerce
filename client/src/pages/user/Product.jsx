@@ -179,27 +179,33 @@ const Product = () => {
                     <div className="mb-6">
                         <h3 className="text-lg font-semibold text-gray-700 mb-2">Available Sizes:</h3>
                         <div className="grid grid-cols-[repeat(auto-fit,_minmax(60px,_1fr))] gap-4">
-                            {product.sizes.map((size, index) => {
-                                return size.isAvailable ? (
-                                    <button
-                                        key={index}
-                                        className={`px-4 py-2 text-gray-700 rounded-lg cursor-pointer ${
-                                            selectedSizeId === size._id
-                                                ? "bg-gray-300"
-                                                : "bg-gray-100 hover:bg-gray-200"
-                                        }`}
-                                        onClick={() => setSelectedSizeId(size._id)}>
-                                        {size.size}
-                                    </button>
-                                ) : (
-                                    <button
-                                        disabled
-                                        key={index}
-                                        className={`px-4 py-2 text-gray-700 rounded-lg bg-red-50 disabled:cursor-not-allowed`}>
-                                        {size.size}
-                                    </button>
-                                );
-                            })}
+                            {product.sizes.length ? (
+                                product.sizes.map((size, index) => {
+                                    return size.isAvailable ? (
+                                        <button
+                                            key={index}
+                                            className={`px-4 py-2 text-gray-700 rounded-lg cursor-pointer ${
+                                                selectedSizeId === size._id
+                                                    ? "bg-gray-300"
+                                                    : "bg-gray-100 hover:bg-gray-200"
+                                            }`}
+                                            onClick={() => setSelectedSizeId(size._id)}>
+                                            {size.size}
+                                        </button>
+                                    ) : (
+                                        <button
+                                            disabled
+                                            key={index}
+                                            className={`px-4 py-2 text-gray-700 rounded-lg bg-red-50 disabled:cursor-not-allowed`}>
+                                            {size.size}
+                                        </button>
+                                    );
+                                })
+                            ) : (
+                                <div className="bg-gray-300 rounded-lg px-4 py-2 text-center">
+                                    <span>Inventory is updating!</span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
