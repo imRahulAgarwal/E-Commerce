@@ -169,7 +169,7 @@ Ensure the following are installed on your system:
 Check out the live version of the application:
 
 -   **Frontend Live Demo:** [https://ecommerce.rahulcoder.in](https://ecommerce.rahulcoder.in)
--   **Admin Panel Live Demo (Video Recording):** [Watch Video](https://link-to-your-video.com)
+-   **Admin Panel Live Demo (Video Recording):** [Watch Video](https://drive.google.com/file/d/1ukZoUNuczbqre6fE0oYxl-3pYLEe_TGM/view?usp=sharing)
 
 ---
 

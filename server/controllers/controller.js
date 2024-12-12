@@ -1333,7 +1333,11 @@ export const newProducts = asyncHandler(async (req, res, next) => {
     const products = await ProductColour.aggregate([
         {
             $facet: {
-                recentProducts: [{ $match: { isDeleted: false, createdAt: { $gte: recentThreshold } } }, { $limit: 4 }],
+                recentProducts: [
+                    { $match: { isDeleted: false, createdAt: { $gte: recentThreshold } } },
+                    { $sort: { createdAt: -1 } },
+                    { $limit: 4 },
+                ],
                 allProducts: [
                     { $match: { isDeleted: false, createdAt: { $lt: recentThreshold } } },
                     { $sort: { createdAt: -1 } },
