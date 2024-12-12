@@ -89,7 +89,7 @@ const AdminRouter = () => {
                         <Route
                             path="categories"
                             element={
-                                <ProtectedRoute permission="manage_category">
+                                <ProtectedRoute permission="manage_product">
                                     <Categories />
                                 </ProtectedRoute>
                             }

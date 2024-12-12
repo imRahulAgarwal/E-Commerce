@@ -13,7 +13,7 @@ body {
 }
 
 .shop-hero {
-    background-image: url("hero-image-clothes.jpg");
+    background-image: url("/hero-image-clothes.jpg");
     height: 500px;
     background-size: cover;
     background-repeat: no-repeat;

@@ -74,7 +74,7 @@ export async function isLoggedIn(req, res, next) {
     }
 
     // If no token found or invalid, redirect to login
-    return next(new ErrorHandler("User not logged in", 401));
+    return res.status(401).json({ success: false, message: "User is not logged in" });
 }
 
 export function checkPermission(requiredPermission = "") {
@@ -135,5 +135,5 @@ export async function isPanelUserAuthenticated(req, res, next) {
     }
 
     // If no token found or invalid, redirect to login
-    return next(new ErrorHandler("User not logged in", 401));
+    return res.status(401).json({ success: false, message: "User is not logged in" });
 }
