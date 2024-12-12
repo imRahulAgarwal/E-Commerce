@@ -12,6 +12,7 @@ import Loader from "../../components/Loader/Loader";
 
 const Product = () => {
     const userWishlist = useSelector((state) => state.userAuth.wishlist);
+    const isUserLoggedIn = useSelector((state) => state.userAuth.status);
     const { productId } = useParams();
     const [product, setProduct] = useState({});
     const [loading, setLoading] = useState(true);
@@ -22,6 +23,11 @@ const Product = () => {
     const navigate = useNavigate();
 
     const handleAddToCart = () => {
+        if (!isUserLoggedIn) {
+            toast.error("Login to proceed", toastCss);
+            return navigate("/login");
+        }
+
         userService.updateCartItems({ productSizeId: selectedSizeId }).then((data) => {
             if (data.success) {
                 userService.readCartItems().then(({ data }) => {
@@ -34,6 +40,11 @@ const Product = () => {
     };
 
     const handleAddToWishlist = () => {
+        if (!isUserLoggedIn) {
+            toast.error("Login to proceed", toastCss);
+            return navigate("/login");
+        }
+
         userService.updateWishlist({ productSizeId: selectedSizeId }).then((data) => {
             if (data.success) {
                 userService.readWishlist().then(({ data }) => {
@@ -46,6 +57,11 @@ const Product = () => {
     };
 
     const handleBuyNow = () => {
+        if (!isUserLoggedIn) {
+            toast.error("Login to proceed", toastCss);
+            return navigate("/login");
+        }
+
         if (!selectedSizeId) {
             return toast.error("Select a size", toastCss);
         }
@@ -69,6 +85,7 @@ const Product = () => {
     };
 
     useEffect(() => {
+        setLoading(true);
         userService
             .getProduct(productId)
             .then(({ data }) => {

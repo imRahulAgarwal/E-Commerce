@@ -10,7 +10,7 @@ import {
     faTimesCircle,
     faHeart,
 } from "@fortawesome/free-solid-svg-icons";
-import { NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { userLogout } from "../../../store/auth/userAuthSlice";
 import userService from "../../../api/user/api";
@@ -105,7 +105,9 @@ const Header = () => {
         <header className="sticky left-0 right-0 top-0 bg-white shadow-md px-4 z-[9999]">
             <div className="container mx-auto flex flex-col md:flex-row items-center justify-between min-h-20 h-auto max-md:py-4">
                 <div className="flex items-center justify-between w-full md:w-auto">
-                    <div className="font-bold text-2xl text-gray-800">E-Commerce Store</div>
+                    <Link to="/" className="font-bold text-2xl text-gray-800">
+                        E-Commerce Store
+                    </Link>
                     {!isMdScreen && (
                         <button className="text-gray-600 focus:outline-none" onClick={() => setIsOffCanvasOpen(true)}>
                             <FontAwesomeIcon icon={faBars} className="text-2xl" />

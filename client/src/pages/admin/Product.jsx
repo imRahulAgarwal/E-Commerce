@@ -64,11 +64,14 @@ const ProductDetails = () => {
         setCurrentSize(size);
     }, []);
 
-    const handleEditColour = useCallback((colourId) => {
-        const colourToEdit = product.colours.find((colour) => colour._id === colourId);
-        setCurrentColour(colourToEdit);
-        setIsColourModalOpen(true);
-    }, []);
+    const handleEditColour = useCallback(
+        (colourId) => {
+            const colourToEdit = product.colours.find((colour) => colour._id === colourId);
+            setCurrentColour(colourToEdit);
+            setIsColourModalOpen(true);
+        },
+        [product]
+    );
 
     const handleDeleteColour = useCallback((colourId) => {
         setColourToDelete(colourId);
@@ -179,6 +182,7 @@ const ProductDetails = () => {
                                                 <th className="px-4 py-2">Size</th>
                                                 <th className="px-4 py-2">Quantity</th>
                                                 <th className="px-4 py-2">Sold</th>
+                                                <th className="px-4 py-2">Is Active</th>
                                                 <th className="px-4 py-2">Actions</th>
                                             </tr>
                                         </thead>
@@ -189,6 +193,7 @@ const ProductDetails = () => {
                                                         <td className="px-4 py-2">{size.size}</td>
                                                         <td className="px-4 py-2">{size.quantity}</td>
                                                         <td className="px-4 py-2">{size.sold}</td>
+                                                        <td className="px-4 py-2">{size.isActive ? "Yes" : "No"}</td>
                                                         <td className="px-4 py-2">
                                                             <div className="space-x-3">
                                                                 <button
