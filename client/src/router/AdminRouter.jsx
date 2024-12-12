@@ -44,7 +44,7 @@ const AdminRouter = () => {
     }, []);
 
     if (loading) {
-        return <Loader />;
+        return <Loader classes="h-screen" />;
     }
 
     const adminRouter = createBrowserRouter(
