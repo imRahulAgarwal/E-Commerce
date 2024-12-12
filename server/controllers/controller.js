@@ -1067,7 +1067,7 @@ export const readProducts = asyncHandler(async (req, res, next) => {
     order = order.toLowerCase() === "asc" ? 1 : -1;
     search = search.trim();
 
-    if (!["price,createdAt"].includes(sort)) {
+    if (!["price", "createdAt"].includes(sort)) {
         sort = "price";
     }
 
