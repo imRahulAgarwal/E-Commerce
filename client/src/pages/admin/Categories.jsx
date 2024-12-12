@@ -84,7 +84,8 @@ const Categories = () => {
                 setCategories((prev) => [...prev, data.category]);
             }
         }
-        setIsModalOpen(false); // Close the modal after submission
+        // setIsModalOpen(false); // Close the modal after submission
+        closeModal(); // Close the modal after submission
     };
 
     const fetchCategories = async () => {
