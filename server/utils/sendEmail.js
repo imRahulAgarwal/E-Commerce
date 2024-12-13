@@ -1,9 +1,9 @@
 import nodemailer from "nodemailer";
-import dotenv from "dotenv";
+import path from "path";
+import __dirname from "../dirname.js";
+import fs from "fs";
 
-dotenv.config();
-
-const sendEmail = async ({ to, subject, text }) => {
+const sendEmail = async ({ to, subject, name, link }) => {
     let transporter;
 
     if (process.env.NODE_ENV === "DEVELOPMENT") {
@@ -28,12 +28,16 @@ const sendEmail = async ({ to, subject, text }) => {
         });
     }
 
+    const emailTemplate = path.join(__dirname, "utils", "email-template.html");
+    const emailHtml = fs.readFileSync(emailTemplate, "utf8");
+    const emailContent = emailHtml.replace("https://example.com/reset-password", link).replace("username", name);
+
     // Define email options
     const mailOptions = {
         from: process.env.GMAIL_USER,
         to,
         subject,
-        text,
+        html: emailContent,
     };
 
     // Send the email

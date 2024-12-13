@@ -142,7 +142,8 @@ export const forgotPassword = asyncHandler(async (req, res, next) => {
     await sendEmail({
         to: user.email,
         subject: "Password Reset Request",
-        text: `Click the link to reset your password: ${resetUrl}`,
+        name: user.fName + " " + user.lName,
+        link: resetUrl,
     });
 
     res.status(200).json({ success: true, message: "Rest Password email sent" });
